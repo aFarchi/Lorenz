@@ -14,6 +14,7 @@
 import numpy as np
 
 from filters.abstractensemblefilter import AbstractEnsembleFilter
+from filters.pf.weights             import Weights
 
 #__________________________________________________
 
@@ -21,19 +22,18 @@ class SIRPF(AbstractEnsembleFilter):
 
     #_________________________
 
-    def __init__(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_label, t_Ns, t_outputFields,
-            t_resampler, t_resamplingTrigger):
+    def __init__(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_label, t_Ns, t_outputFields, t_resampler):
         AbstractEnsembleFilter.__init__(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_label, t_Ns, t_outputFields)
-        self.setSIRPFParameters(t_resampler, t_resamplingTrigger)
+        self.setSIRPFParameters(t_resampler)
         self.setSIRPFTemporaryArrays()
 
     #_________________________
 
-    def setSIRPFParameters(self, t_resampler, t_resamplingTrigger):
+    def setSIRPFParameters(self, t_resampler):
         # resampler
-        self.m_resampler         = t_resampler
-        # resampling trigger
-        self.m_resamplingTrigger = t_resamplingTrigger
+        self.m_resampler = t_resampler
+        # Weights
+        self.m_weights   = Weights(self.m_Ns)
 
     #_________________________
 
@@ -45,75 +45,31 @@ class SIRPF(AbstractEnsembleFilter):
 
     def initialise(self):
         AbstractEnsembleFilter.initialise(self)
-        # relative weights in ln scale
-        self.m_w         = - np.log(self.m_Ns) * np.ones(self.m_Ns)
-        # Neff
-        self.m_Neff      = 1.0
-        # Resampled
-        self.m_resampled = False
-
-    #_________________________
-
-    def Neff(self):
-        # empirical effective relative sample size
-        # Neff = 1 / sum ( w_i ^ 2 ) / Ns
-        self.m_Neff = 1.0 / ( np.exp(2.0*self.m_w).sum() * self.m_Ns )
-
-    #_________________________
-
-    def reweight(self, t_t, t_observation):
-        # first step of analyse : reweight ensemble according to observation weights
-        self.m_observationOperator.deterministicObserve(self.m_x[self.m_integrationIndex], t_t, self.m_Hx)
-        self.m_w += self.m_observationOperator.pdf(t_observation, self.m_Hx, t_t)
-
-    #_________________________
-
-    def normaliseWeights(self, t_w):
-        # second step of analyse : normalise weigths so that they sum up to 1
-        # note that wmax is extracted so that there is no zero argument for np.log() in the next line
-        wmax = t_w.max()
-        return t_w - ( wmax + np.log(np.exp(t_w-wmax).sum()) )
-
-    #_________________________
-
-    def resample(self, t_t):
-        # third step of analyse : resample
-        self.Neff()
-        self.m_resampled = self.m_resamplingTrigger.trigger(self.m_Neff, t_t)
-        if self.m_resampled:
-            (self.m_w, self.m_x[self.m_integrationIndex]) = self.m_resampler.sample(self.m_Ns, self.m_w, self.m_x[self.m_integrationIndex])
-            self.Neff()
 
     #_________________________
 
     def analyse(self, t_t, t_observation):
-        # analyse observation at time t
-        self.reweight(t_t, t_observation)
-        self.m_w = self.normaliseWeights(self.m_w)
-        self.resample(t_t)
+        # apply observation operator to ensemble
+        self.m_observationOperator.deterministicObserve(self.m_x[self.m_integrationIndex], t_t, self.m_Hx)
+        # reweight according to observation weights
+        self.m_weights.re_weight(self.m_observationOperator.pdf(t_observation, self.m_Hx, t_t))
+        # normalise weights and also update normal weights
+        self.m_weights.normalise()
+        # resample
+        self.m_resampler.resample(self.m_weights, self.m_x[self.m_integrationIndex])
 
     #_________________________
 
     def estimate(self):
         # mean of x
-        self.m_estimation = np.average(self.m_x[self.m_integrationIndex], axis = -2, weights = np.exp(self.m_w))
+        self.m_estimation = np.average(self.m_x[self.m_integrationIndex], axis = -2, weights = self.m_weights.m_w)
 
     #_________________________
 
     def record(self, t_forecastOrAnalyse):
         AbstractEnsembleFilter.record(self, t_forecastOrAnalyse)
-        # neff
-        self.m_output.record(self.m_label, t_forecastOrAnalyse+'_neff', self.m_Neff)
-
-    #_________________________
-
-    def recordAnalyse(self):
-        AbstractEnsembleFilter.recordAnalyse(self)
-        # resampling
-        out = 0.0
-        if self.m_resampled:
-            out = 1.0
-        self.m_output.record(self.m_label, 'analyse_resampled', out)
+        self.m_resampler.record(t_forecastOrAnalyse, self.m_output, self.m_label)
+        self.m_weights.record(t_forecastOrAnalyse, self.m_output, self.m_label)
 
 #__________________________________________________
 

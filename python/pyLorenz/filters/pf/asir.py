@@ -21,10 +21,8 @@ class ASIRPF(SIRPF):
 
     #_________________________
 
-    def __init__(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_label, t_Ns, t_outputFields,
-            t_resampler, t_resamplingTrigger):
-        SIRPF.__init__(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_label, t_Ns, t_outputFields,
-                t_resampler, t_resamplingTrigger)
+    def __init__(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_label, t_Ns, t_outputFields, t_resampler):
+        SIRPF.__init__(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_label, t_Ns, t_outputFields, t_resampler)
 
     #_________________________
 
@@ -35,12 +33,15 @@ class ASIRPF(SIRPF):
         fsIndex = self.m_integrator.deterministicIntegrate(self.m_x, t_tStart, t_tEnd, self.m_dx) # note that one could also use integrate() instead of deterministicIntegrate()
         if fsIndex == 0:
             return # if no integration, then just return
-        self.m_observationOperator.deterministicObserve(self.m_x[fsIndex], t_tEnd, self.m_Hx)
-        fsw = self.m_observationOperator.pdf(t_observation, self.m_Hx, t_tEnd)
 
-        # resample at time tStart given these weights
-        rw          = self.normaliseWeights(self.m_w+fsw)
-        indices     = self.m_resampler.sampleIndices(self.m_Ns, rw)
+        # reweight according to first stage weights
+        self.m_observationOperator.deterministicObserve(self.m_x[fsIndex], t_tEnd, self.m_Hx)
+        fs_log_w = self.m_observationOperator.pdf(t_observation, self.m_Hx, t_tEnd)
+        self.m_weights.re_weight(fs_log_w)
+        self.m_weights.normalise()
+
+        # resample at time tStart 
+        indices     = self.m_resampler.resampling_indices(self.m_weights.m_w)
         self.m_x[0] = self.m_x[0][indices]
 
         # now integrate particles from tStart to tEnd
@@ -48,7 +49,8 @@ class ASIRPF(SIRPF):
 
         # correct weigths to account for the resampling step at time tStart
         # i.e. w[i] = 1 / p ( observation | fsx[indices[i]] )
-        self.m_w = - fsw[indices]
+        self.m_weights.m_log_w = - fs_log_w[indices]
+        self.m_weights.normalise()
 
 #__________________________________________________
 

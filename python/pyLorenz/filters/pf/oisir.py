@@ -21,10 +21,8 @@ class OISIRPF_diag(SIRPF):
 
     #_________________________
 
-    def __init__(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_label, t_Ns, t_outputFields,
-            t_resampler, t_resamplingTrigger, t_rng):
-        SIRPF.__init__(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_label, t_Ns, t_outputFields,
-                t_resampler, t_resamplingTrigger)
+    def __init__(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_label, t_Ns, t_outputFields, t_resampler, t_rng):
+        SIRPF.__init__(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_label, t_Ns, t_outputFields, t_resampler)
         self.setOISIRPF_diagParameters(t_rng)
 
     #_________________________
@@ -65,23 +63,25 @@ class OISIRPF_diag(SIRPF):
 
         if self.m_observationOperator.isLinear():
             # w *= p ( observation | x[tStart] )
-            s         = 1.0 / ( sigma_o + H * sigma_m * H )
-            d         = y - H * fx
-            self.m_w -= 0.5 * ( d * s * d ).sum(axis = -1)
+            s = 1.0 / ( sigma_o + H * sigma_m * H )
+            d = y - H * fx
+            self.m_weights.re_weight( - 0.5 * ( d * s * d ).sum(axis = -1) )
 
             # w /= p( observation | x[tEnd] )
             self.m_observationOperator.deterministicObserve(self.m_x[self.m_integrationIndex], t_tEnd, self.m_Hx)
-            self.m_w -= self.m_observationOperator.pdf(t_observation, self.m_Hx, t_tEnd)
+            self.m_weights.re_weight( - self.m_observationOperator.pdf(t_observation, self.m_Hx, t_tEnd) )
 
         else:
             # w *= p( x[tEnd] | x[tStart] )
             # small tweak here since we already performed a deterministic integration of x[tStart] (and stored it in xf)
-            me        = self.m_x[self.m_integrationIndex] - fx
-            self.m_w -= 0.5 * ( me * sigma_m * me ).sum(axis = -1)
+            me = self.m_x[self.m_integrationIndex] - fx
+            self.m_weights.re_weight( - 0.5 * ( me * sigma_m * me ).sum(axis = -1) )
 
             # w /= proposal_pdf( x[tEnd] )
-            pe        = self.m_x[self.m_integrationIndex] - mean_p
-            self.m_w += 0.5 * ( pe * sigma_p * pe ).sum(axis = -1)
+            pe = self.m_x[self.m_integrationIndex] - mean_p
+            self.m_weights.re_weight( 0.5 * ( pe * sigma_p * pe ).sum(axis = -1) )
+
+        self.m_weights.normalise()
 
         # Other option:
         # remove the step : w /= p( observation | x[tEnd] ) in the linear case

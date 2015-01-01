@@ -21,9 +21,6 @@ from utils.auxiliary.configparser                    import ConfigParser
 from utils.auxiliary.dictutils                       import makeKeyDictRecListDict
 
 from utils.random.independantgaussianerrorgenerator  import IndependantGaussianErrorGenerator
-from utils.random.stochasticuniversalresampler       import StochasticUniversalResampler
-from utils.random.mcmhresampler                      import MCMHResampler
-from utils.random.directresampler                    import DirectResampler
 
 from utils.integration.kpintegrationstep             import KPIntegrationStep
 from utils.integration.rk4integrationstep            import RK4IntegrationStep
@@ -35,6 +32,10 @@ from utils.initialisation.randominitialiser          import RandomInitialiser
 from utils.output.output                             import Output
 
 from utils.trigger.thresholdtrigger                  import ThresholdTrigger
+from utils.trigger.countertrigger                    import CounterTrigger
+from utils.trigger.counterorthresholdtrigger         import CounterOrThresholdTrigger
+
+from utils.sampling.resampler                        import Resampler
 
 from utils.minimisation.scipyminimiser               import ScipyVectorMinimisation, ScipyScalarMinimisation
 
@@ -56,8 +57,8 @@ from filters.pf.sir                                  import SIRPF
 from filters.pf.oisir                                import OISIRPF_diag
 from filters.pf.asir                                 import ASIRPF
 
-#from simulation.simulation_debug                     import Simulation
-from simulation.simulation                           import Simulation
+from simulation.simulation_debug                     import Simulation
+#from simulation.simulation                           import Simulation
 
 #__________________________________________________
 
@@ -330,17 +331,33 @@ class Configuration(object):
 
     #_________________________
 
+    def trigger(self, *t_options):
+        # build trigger object
+        trigger_cls = self.m_config.get(*(t_options+('class',)))
+        if trigger_cls == 'Counter':
+            trigger_ctl = self.m_config.getInt(*(t_options+('counter_limit',)))
+            trigger_arg = None
+            trigger     = CounterTrigger(trigger_ctl)
+        elif trigger_cls == 'CounterOrThreshold':
+            trigger_ctl = self.m_config.getInt(*(t_options+('counter_limit',)))
+            trigger_arg = self.m_config.get(*(t_options+('threshold_variable',)))
+            trigger_thr = self.m_config.getFloat(*(t_options+('threshold_value',)))
+            trigger     = CounterOrThresholdTrigger(trigger_thr, trigger_ctl)
+        elif trigger_cls == 'Threshold':
+            trigger_arg = self.m_config.get(*(t_options+('threshold_variable',)))
+            trigger_thr = self.m_config.getFloat(*(t_options+('threshold_value',)))
+            trigger     = ThresholdTrigger(trigger_thr)
+        return (trigger, trigger_arg)
+
+    #_________________________
+
     def resampler(self, t_filter):
         # build resampler
-        resampler_cls = self.m_config.get(t_filter, 'resampling', 'class')
         seed          = self.m_config.getInt(t_filter, 'resampling', 'seed', default = None)
         resampler_rng = RandomState(seed)
-        if resampler_cls == 'StochasticUniversal':
-            return StochasticUniversalResampler(resampler_rng)
-        elif resampler_cls == 'Direct':
-            return DirectResampler(resampler_rng)
-        elif resampler_cls == 'MCMH':
-            return MCMHResampler(resampler_rng)
+        resampler_mth = self.m_config.get(t_filter, 'resampling', 'method')
+        (resampler_trg, resampler_arg) = self.trigger(t_filter, 'resampling', 'trigger')
+        return Resampler(resampler_rng, resampler_mth, resampler_trg, resampler_arg)
 
     #_________________________
 
@@ -378,17 +395,15 @@ class Configuration(object):
 
     def PF(self, t_filter, t_class, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_Ns, t_outputFields):
         # build PF
-        filter_rt  = self.m_config.getFloat(t_filter, 'resampling', 'threshold')
         resampler  = self.resampler(t_filter)
-        trigger    = ThresholdTrigger(filter_rt)
 
         if t_class == 'SIR':
             return SIRPF(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, 
-                    t_filter, t_Ns, t_outputFields, resampler, trigger)
+                    t_filter, t_Ns, t_outputFields, resampler)
 
         elif t_class == 'ASIR':
             return ASIRPF(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, 
-                    t_filter, t_Ns, t_outputFields, resampler, trigger)
+                    t_filter, t_Ns, t_outputFields, resampler)
 
         elif t_class == 'OISIR':
             try:
@@ -397,7 +412,7 @@ class Configuration(object):
                 seed       = self.m_config.getInt(t_filter, 'integration', 'seed', default = None)
                 filter_rng = RandomState(seed)
             return OISIRPF_diag(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, 
-                    t_filter, t_Ns, t_outputFields, resampler, trigger, filter_rng)
+                    t_filter, t_Ns, t_outputFields, resampler, filter_rng)
 
     #_________________________
 
