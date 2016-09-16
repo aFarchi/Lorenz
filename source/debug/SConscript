@@ -40,9 +40,12 @@ debugIndependantGaussianRNG = env.Program(target = target,
 
 target  = 'debugLorenz63'
 main    = ['debugLorenz63.cpp']
-sources = ['../utils/random/independantGaussianRNG.cpp']
-sources = ['../utils/vector/vectorOperations.cpp']
-sources = ['../model/lorenz63.cpp']
+sources = ['../utils/random/independantGaussianRNG.cpp',
+        '../utils/vector/vectorOperations.cpp',
+        '../integration/eulerExplScheme.cpp',
+        '../integration/rk2scheme.cpp',
+        '../integration/rk4scheme.cpp',
+        '../model/lorenz63.cpp']
 libs    = []
 libpath = []
 

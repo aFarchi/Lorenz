@@ -14,6 +14,9 @@
 #ifndef UTILS_VECTOR_VECTOROPERATIONS_H
 #define UTILS_VECTOR_VECTOROPERATIONS_H
 
+#include <cstddef>
+#include <stdio.h>
+
 namespace utils
 {
 

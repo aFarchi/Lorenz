@@ -15,6 +15,9 @@
 
 #include "../utils/random/independantGaussianRNG.cpp"
 #include "../utils/vector/vectorOperations.cpp"
+#include "../integration/eulerExplScheme.cpp"
+#include "../integration/rk2scheme.cpp"
+#include "../integration/rk4scheme.cpp"
 #include "../model/lorenz63.cpp"
 
 using Real   = double ;
@@ -23,7 +26,11 @@ template <typename T>
 using Normal = std::normal_distribution<T> ;
 template <std::size_t N, typename T>
 using GRNG   = utils::random::IndependantGaussianRNG <N, T, RNG, Normal> ;
-using L63M   = model::Lorenz63Model<Real, GRNG> ;
+template <std::size_t N, typename T>
+using IS     = integration::RK4Scheme<N, T> ;
+//using IS     = integration::RK2Scheme<N, T> ;
+//using IS     = integration::EulerExplScheme<N, T> ;
+using L63M   = model::Lorenz63Model<Real, IS, GRNG> ;
 
 int main()
 {
@@ -37,10 +44,6 @@ int main()
     Real beta  = 8.0 / 3.0 ;
     Real rho   = 28.0 ;
     model.setModelParameters(sigma, rho, beta) ;
-
-    // integration method
-    model::IntegrationMethod intM = model::RK4 ;
-    model.setIntegrationMethod(intM) ;
 
     // time sample parameters
     const Real dt = 0.01 ;
