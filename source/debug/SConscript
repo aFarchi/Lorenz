@@ -1,0 +1,36 @@
+
+#__________________________________________________
+# ./
+# Sconscript
+#__________________________________________________
+# author        : colonel
+# last modified : 2016/9/16
+#__________________________________________________
+#
+# sub-compile script
+#
+
+#___________________________________________
+# Import Environment from above-level script
+#___________________________________________
+
+Import('env')
+
+def objectFromFiles(files):
+    return [env.Object(file) for file in files]
+
+#____________________________________
+# debugIndependantGaussianRNG program
+#____________________________________
+
+target  = 'debugIndependantGaussianRNG'
+main    = ['debugIndependantGaussianRNG.cpp']
+sources = ['../utils/random/independantGaussianRNG.cpp']
+libs    = []
+libpath = []
+
+debugIndependantGaussianRNG = env.Program(target = target,
+        source  = main + objectFromFiles(sources),
+        LIBS    = libs,
+        LIBPATH = libpath)
+

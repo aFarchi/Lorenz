@@ -1,0 +1,33 @@
+
+#__________________________________________________
+# ./
+# Sconscript
+#__________________________________________________
+# author        : colonel
+# last modified : 2016/9/16
+#__________________________________________________
+#
+# sub-compile script
+#
+
+#___________________________________________
+# Import Environment from above-level script
+#___________________________________________
+
+Import('env')
+
+#______________________
+# Select subdirectories
+#______________________
+
+subdirs = []
+if env.configuration.label == 'debug':
+    subdirs.append('debug/')
+
+#___________________
+# Execute subscripts
+#___________________
+
+for sd in subdirs:
+    env.SConscript(sd+'SConscript', dict(env=env))
+
