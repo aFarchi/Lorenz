@@ -22,10 +22,8 @@ namespace utils
 
     namespace random
     {
-        template <typename Real>
-            using Normal = std::normal_distribution <Real> ;
 
-        template <std::size_t N, typename Real = double, class RNG = std::default_random_engine>
+        template <std::size_t N, typename Real = double, class RNG = std::default_random_engine, template <typename> class Normal = std::normal_distribution>
             class IndependantGaussianRNG
             {
                 public:

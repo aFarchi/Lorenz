@@ -7,7 +7,7 @@
  * last modified : 2016/9/16
  *__________________________________________________
  *
- * code snippet to test class IndependantGaussianRNG
+ * code snippet to debug class IndependantGaussianRNG
  * displays a sample of N(5,2)
  *
  */
@@ -18,7 +18,9 @@
 
 using Real = double ;
 using RNG  = std::default_random_engine ;
-using GRNG = utils::random::IndependantGaussianRNG <2, Real, RNG> ;
+template <typename T>
+using Normal = std::normal_distribution<T> ;
+using GRNG = utils::random::IndependantGaussianRNG <2, Real, RNG, Normal> ;
 
 int main()
 {

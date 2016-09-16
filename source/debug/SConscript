@@ -34,3 +34,20 @@ debugIndependantGaussianRNG = env.Program(target = target,
         LIBS    = libs,
         LIBPATH = libpath)
 
+#______________________
+# debugLorenz63 program
+#______________________
+
+target  = 'debugLorenz63'
+main    = ['debugLorenz63.cpp']
+sources = ['../utils/random/independantGaussianRNG.cpp']
+sources = ['../utils/vector/vectorOperations.cpp']
+sources = ['../model/lorenz63.cpp']
+libs    = []
+libpath = []
+
+debugLorenz63 = env.Program(target = target,
+        source  = main + objectFromFiles(sources),
+        LIBS    = libs,
+        LIBPATH = libpath)
+

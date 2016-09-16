@@ -23,16 +23,16 @@ namespace utils
     {
 
         // set common random number generator
-        template <std::size_t N, typename Real, class RNG>
-            void IndependantGaussianRNG<N, Real, RNG> ::
+        template <std::size_t N, typename Real, class RNG, template <typename> class Normal>
+            void IndependantGaussianRNG<N, Real, RNG, Normal> ::
             setRNG(RNG * t_rng)
             {
                 m_rng = t_rng ;
             }
 
         // set distribution parameters
-        template <std::size_t N, typename Real, class RNG>
-            void IndependantGaussianRNG<N, Real, RNG> ::
+        template <std::size_t N, typename Real, class RNG, template <typename> class Normal>
+            void IndependantGaussianRNG<N, Real, RNG, Normal> ::
             setParameters(const Real * t_mean, const Real * t_var)
             {
                 for(std::size_t i = 0 ; i < N ; ++i)
@@ -42,8 +42,8 @@ namespace utils
             }
 
         // add error to t_vector
-        template <std::size_t N, typename Real, class RNG>
-            void IndependantGaussianRNG<N, Real, RNG> ::
+        template <std::size_t N, typename Real, class RNG, template <typename> class Normal>
+            void IndependantGaussianRNG<N, Real, RNG, Normal> ::
             addError(Real * t_vector)
             {
                 for(std::size_t i = 0 ; i < N ; ++i)
