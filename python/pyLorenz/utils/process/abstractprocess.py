@@ -1,14 +1,14 @@
 #! /usr/bin/env python
 
 #__________________________________________________
-# pyLorenz/utils/random/
-# abstractStochasticProcess.py
+# pyLorenz/utils/process/
+# abstractprocess.py
 #__________________________________________________
 # author        : colonel
 # last modified : 2016/9/20
 #__________________________________________________
 #
-# define an abstract class for a process with some noise
+# define abstract classes for a process with or without noise
 #
 
 import numpy as np
@@ -25,10 +25,19 @@ class AbstractStochasticProcess:
 
     #_________________________
 
-    def stochasticProcessForward(self, *args, **kwargs):
+    def process(self, *args, **kwargs):
         # call deterministic process and add error
-        kwargs['t_stochastic'] = True
-        return self.m_errorGenerator.addError(self.deterministicProcessForward(*args, **kwargs))
+        return self.m_errorGenerator.addError(self.deterministicProcess(*args, **kwargs))
+
+#__________________________________________________
+
+class AbstractDeterministicProcess:
+
+    #_________________________
+
+    def process(self, *args, **kwargs):
+        # call deterministic process
+        return self.deterministicProcess(*args, **kwargs)
 
 #__________________________________________________
 

@@ -8,22 +8,24 @@
 # last modified : 2016/9/20
 #__________________________________________________
 #
-# class to handle the step function of a Lorenz 1963 model
+# classes to handle the a Lorenz 1963 model
+# i.e. process compute the dervative at a given point according to a Lorenz 1963 model
 #
 
 import numpy as np
-from ..utils.random.abstractStochasticProcess import AbstractStochasticProcess
+
+from ..utils.process.abstractprocess import AbstractStochasticProcess
+from ..utils.process.abstractprocess import AbstractDeterministicProcess
 
 #__________________________________________________
 
-class Lorenz63Model(AbstractStochasticProcess):
+class AbstractLorenz63Model:
 
     #_________________________
 
     def __init__(self):
         # constructor
         self.m_stateDimension = 3
-        self.setParameters()
 
     #_________________________
 
@@ -35,15 +37,8 @@ class Lorenz63Model(AbstractStochasticProcess):
 
     #_________________________
 
-    def setIntegrator(self, t_integrator):
-        # set integrator
-        self.m_integrator = t_integrator
-
-    #_________________________
-
-    def computeDerivate(self, t_x):
+    def deterministicProcess(self, t_x):
         # compute dx according to the model
-        # t_x is not modified
         shape = t_x.shape
         if len(shape) == 1:
             # for one point
@@ -60,15 +55,15 @@ class Lorenz63Model(AbstractStochasticProcess):
             dx[:, 2] = t_x[:, 0] * t_x[:, 1] - self.m_beta * t_x[:, 2]
         return dx
 
-    #_________________________
+#__________________________________________________
 
-    def deterministicProcessForward(self, t_xn, **kwargs):
-        # step forward : xnpp = model(t_xn)
-        # t_xn is not modified
-        if 't_stochastic' in kwargs:
-            if kwargs['t_stochastic']:
-                return self.m_integrator.stochasticProcessForward(self, t_xn)
-        return self.m_integrator.deterministicProcessForward(self, t_xn)
+class StochasticLorenz63Model(AbstractLorenz63Model, AbstractStochasticProcess):
+    pass
+
+#__________________________________________________
+
+class DeterministicLorenz63Model(AbstractLorenz63Model, AbstractDeterministicProcess):
+    pass
 
 #__________________________________________________
 

@@ -2,7 +2,7 @@
 
 #__________________________________________________
 # pyLorenz/utils/random/
-# independantGaussianRNG.py
+# independantgaussianrng.py
 #__________________________________________________
 # author        : colonel
 # last modified : 2016/9/20
@@ -44,6 +44,7 @@ class IndependantGaussianRNG:
         else:
             # for multiple vectors
             t_x += self.drawSamples(shape[0])
+        return t_x
 
     #_________________________
 
@@ -57,6 +58,16 @@ class IndependantGaussianRNG:
         # draw t_Ns samples according to the gaussian distribution
         return ( rnd.normal( np.tile(self.m_mean, (t_Ns, 1)) , np.tile(self.m_sigma, (t_Ns, 1)) ) * ( 1.0 - np.tile(self.m_exact, (t_Ns, 1)) ) +
                 np.tile(self.m_mean*self.m_exact, (t_Ns, 1)) )
+
+    #_________________________
+
+    def pdf(self, t_x, t_inflation = 1.0):
+        # compute the pdf of the noise process at point t_x
+        shape = t_x.shape
+        if len(shape) == 1:
+            return np.exp ( - np.power ( ( t_x - self.m_mean ) / ( t_inflation * self.m_sigma ) , 2 ) / 2.0 ) . prod()
+        else:
+            return np.exp ( - np.power ( ( t_x - np.tile( self.m_mean , (shape[0], 1) ) ) / np.tile ( t_inflation * self.m_sigma , (shape[0], 1) ) , 2 ) / 2.0 ) . prod(axis = 1)
 
 #__________________________________________________
 

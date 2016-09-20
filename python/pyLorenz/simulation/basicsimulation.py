@@ -2,13 +2,13 @@
 
 #__________________________________________________
 # pyLorenz/simulation/
-# basicSimulation.py
+# basicsimulation.py
 #__________________________________________________
 # author        : colonel
 # last modified : 2016/9/20
 #__________________________________________________
 #
-# class to handle a basic simulation of any model
+# classes to handle a basic simulation of any model
 # i.e. no filtering is performed
 #
 
@@ -20,21 +20,26 @@ class BasicSimulation:
 
     #_________________________
 
+    def setParameters(self, t_Nt):
+        # set number of time steps
+        self.m_Nt = t_Nt
+
+    #_________________________
+
     def setModel(self, t_model):
         # set model
         self.m_model = t_model
 
     #_________________________
 
+    def setIntegrator(self, t_integrator):
+        # set integrator
+        self.m_integrator = t_integrator
+    #_________________________
+
     def setInitialiser(self, t_initialiser):
         # set initialiser
         self.m_initialiser = t_initialiser
-
-    #_________________________
-
-    def setSimulationParameters(self, t_Nt):
-        # set number of time steps
-        self.m_Nt = t_Nt
 
     #_________________________
 
@@ -53,35 +58,22 @@ class BasicSimulation:
 
     #_________________________
 
-    def stochasticProcessForward(self, t_nt):
+    def timeStep(self, t_nt):
+        self.m_outputPrinter.printStep(t_nt, self)
         # first record truth
         self.m_xt_record[t_nt, :] = self.m_xt[:]
         # then apply time step
-        self.m_xt = self.m_model.stochasticProcessForward(self.m_xt)
+        self.m_xt = self.m_integrator.process(self.m_model, self.m_xt)
 
     #_________________________
 
-    def deterministicProcessForward(self, t_nt):
-        # first record truth
-        self.m_xt_record[t_nt, :] = self.m_xt[:]
-        # then apply time step
-        self.m_xt = self.m_model.deterministicProcessForward(self.m_xt)
-
-    #_________________________
-
-    def run(self, t_stochastic):
+    def run(self):
         # run function
         self.m_outputPrinter.printStart(self)
-        self.initialise()
 
-        if t_stochastic:
-            for nt in np.arange(self.m_Nt):
-                self.m_outputPrinter.printStep(nt, self)
-                self.stochasticProcessForward(nt)
-        else:
-            for nt in np.arange(self.m_Nt):
-                self.m_outputPrinter.printStep(nt, self)
-                self.deterministicProcessForward(nt)
+        self.initialise()
+        for nt in np.arange(self.m_Nt):
+            self.timeStep(nt)
 
         self.m_outputPrinter.printEnd(self)
 

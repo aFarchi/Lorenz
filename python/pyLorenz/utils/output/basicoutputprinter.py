@@ -2,7 +2,7 @@
 
 #__________________________________________________
 # pyLorenz/utils/output/
-# basicOutputPrinter.py
+# basicoutputprinter.py
 #__________________________________________________
 # author        : colonel
 # last modified : 2016/9/20
@@ -17,12 +17,6 @@ import numpy as np
 #__________________________________________________
 
 class BasicOutputPrinter:
-
-    #_________________________
-
-    def __init__(self):
-        # constructor
-        self.setParameters()
 
     #_________________________
 
