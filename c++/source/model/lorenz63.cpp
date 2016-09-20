@@ -45,7 +45,7 @@ namespace model
     // used to set the rng and the model error parameters
     template <typename Real, template <std::size_t, typename> class Integrator, template <std::size_t, typename> class ModelErrorGenerator>
         ModelErrorGenerator <3, Real> & Lorenz63Model <Real, Integrator, ModelErrorGenerator> ::
-        modelErrorgenerator()
+        modelErrorGenerator()
         {
             return m_meg ;
         }

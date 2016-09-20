@@ -32,7 +32,7 @@ namespace model
             public:
                 Lorenz63Model() ;
                 void setModelParameters(Real t_sigma = 10.0, Real t_rho = 2.667, Real t_beta = 28.0) ;
-                ModelErrorGenerator <3, Real> & modelErrorgenerator() ;
+                ModelErrorGenerator <3, Real> & modelErrorGenerator() ;
 
                 void forward(Real t_dt, const Real * t_stateN, Real * t_stateNPP, bool addModelError = false) ;
                 void computeDerivative(const Real * t_state, Real * t_dstate) ;
