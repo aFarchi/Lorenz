@@ -40,11 +40,11 @@ class IndependantGaussianRNG:
         shape = t_x.shape
         if len(shape) == 1:
             # for one vector
-            t_x += self.drawSample()
+            error = self.drawSample()
         else:
             # for multiple vectors
-            t_x += self.drawSamples(shape[0])
-        return t_x
+            error = self.drawSamples(shape[0])
+        return t_x + error
 
     #_________________________
 
