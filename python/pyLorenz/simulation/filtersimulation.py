@@ -87,5 +87,17 @@ class FilterSimulation(BasicSimulation):
         ###_____________________________
         self.m_filter.resampledSteps().tofile(t_outputDir+'nt_resampling.bin')
 
+    #_________________________
+
+    def computeFilterPerformance(self, t_ntDrop=0):
+        mse            = np.sqrt ( np.power ( self.m_xt_record - self.m_xa_record , 2.0 ) . sum ( axis = 1 ) )
+        mse[:t_ntDrop] = 0.0 
+        self.meanFP    = mse.cumsum() / np.maximum( np.arange(self.m_Nt) - ( t_ntDrop - 1.0 ) , 1.0 )
+
+    #_________________________
+    
+    def filterPerformanceToFile(self, t_outputDir='./'):
+        self.meanFP.tofile(t_outputDir+'meanFP.bin')
+
 #__________________________________________________
 

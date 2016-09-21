@@ -125,3 +125,6 @@ simulation.setOutputPrinter(outputPrinter)
 simulation.run()
 simulation.recordToFile(outputDir)
 
+simulation.computeFilterPerformance(0)
+simulation.filterPerformanceToFile(outputDir)
+
