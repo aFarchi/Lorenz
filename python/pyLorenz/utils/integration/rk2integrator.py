@@ -5,7 +5,7 @@
 # rk2integrator.py
 #__________________________________________________
 # author        : colonel
-# last modified : 2016/9/20
+# last modified : 2016/9/21
 #__________________________________________________
 #
 # classes to handle the integration step according to RK2 scheme
@@ -14,6 +14,7 @@
 import numpy as np
 
 from ..process.abstractprocess import AbstractStochasticProcess 
+from ..process.abstractprocess import AbstractMultiStochasticProcess
 from ..process.abstractprocess import AbstractDeterministicProcess
 
 #__________________________________________________
@@ -31,13 +32,18 @@ class AbstractRK2Integrator:
     def deterministicProcess(self, t_model, t_xn):
         # integrates xn
         dx = t_model.process(t_xn)
-        x  = t_xn + dx * self.m_dt / 2.0
+        x  = self.potentiallyAddError(t_xn + dx * self.m_dt / 2.0)
         dx = t_model.process(x)
-        return t_xn + dx * self.m_dt
+        return self.potentiallyAddError(t_xn + dx * self.m_dt)
 
 #__________________________________________________
 
 class StochasticRK2Integrator(AbstractRK2Integrator, AbstractStochasticProcess):
+    pass
+
+#__________________________________________________
+ 
+class MultiStochasticRK2Integrator(AbstractRK2Integrator, AbstractMultiStochasticProcess):
     pass
 
 #__________________________________________________

@@ -2,24 +2,24 @@
 
 #__________________________________________________
 # pyLorenz/utils/integration/
-# eulerexplintegrator.py
+# kpintegrator.py
 #__________________________________________________
 # author        : colonel
 # last modified : 2016/9/21
 #__________________________________________________
 #
-# classes to handle the integration step according to euler's explicit scheme
+# classes to handle the integration step according to KP scheme
 #
 
 import numpy as np
 
-from ..process.abstractprocess import AbstractStochasticProcess
+from ..process.abstractprocess import AbstractStochasticProcess 
 from ..process.abstractprocess import AbstractMultiStochasticProcess
 from ..process.abstractprocess import AbstractDeterministicProcess
 
 #__________________________________________________
 
-class AbstractEulerExplIntegrator:
+class AbstractKPIntegrator:
 
     #_________________________
 
@@ -32,21 +32,23 @@ class AbstractEulerExplIntegrator:
     def deterministicProcess(self, t_model, t_xn):
         # integrates xn
         dx = t_model.process(t_xn)
+        x  = self.potentiallyAddError(t_xn + dx * self.m_dt)
+        dx = ( t_model.process(x) + dx ) / 2.0
         return self.potentiallyAddError(t_xn + dx * self.m_dt)
 
 #__________________________________________________
 
-class StochasticEulerExplIntegrator(AbstractEulerExplIntegrator, AbstractStochasticProcess):
+class StochasticKPIntegrator(AbstractKPIntegrator, AbstractStochasticProcess):
     pass
 
 #__________________________________________________
-
-class MultiStochasticEulerExplIntegrator(AbstractEulerExplIntegrator, AbstractMultiStochasticProcess):
+ 
+class MultiStochasticKPIntegrator(AbstractKPIntegrator, AbstractMultiStochasticProcess):
     pass
 
 #__________________________________________________
-
-class DeterministicEulerExplIntegrator(AbstractEulerExplIntegrator, AbstractDeterministicProcess):
+ 
+class DeterministicKPIntegrator(AbstractKPIntegrator, AbstractDeterministicProcess):
     pass
 
 #__________________________________________________

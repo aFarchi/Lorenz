@@ -73,11 +73,19 @@ class SIRPF:
 
     #_________________________
 
+    def resampledSteps(self):
+        return 1.0 * np.array(self.m_resampled)
+
+    #_________________________
+
     def analyse(self, t_nt, t_obs):
         # observation weights
         w = self.m_observationOperator.observationPDF(t_obs, self.m_x, self.m_observationVarianceInflation)
 
         if w.max() < self.m_weightsTolerance:
+            ###_____________________________
+            ### --->>> TO IMPROVE <<<--- ###
+            ###_____________________________
             # filter has diverged from the truth...
             # ignore observation
             print('filter divergence, nt='+str(t_nt))
@@ -89,6 +97,9 @@ class SIRPF:
         self.m_w /= self.m_w.sum()
         # resample if needed
         if self.Neff() < self.m_resamplingThreshold:
+            ###_______________________________
+            ### --->>> REMOVE PRINT <<<--- ###
+            ###_______________________________
             print('resampling, nt='+str(t_nt))
             (self.m_w, self.m_x) = self.m_resampler.resample(self.m_w, self.m_x)
             self.m_resampled.append(t_nt)

@@ -20,10 +20,16 @@ from pyLorenz.model.lorenz63                        import StochasticLorenz63Mod
 from pyLorenz.utils.random.independantgaussianrng   import IndependantGaussianRNG
 from pyLorenz.utils.integration.eulerexplintegrator import DeterministicEulerExplIntegrator
 from pyLorenz.utils.integration.eulerexplintegrator import StochasticEulerExplIntegrator
+from pyLorenz.utils.integration.eulerexplintegrator import MultiStochasticEulerExplIntegrator
 from pyLorenz.utils.integration.rk2integrator       import DeterministicRK2Integrator
 from pyLorenz.utils.integration.rk2integrator       import StochasticRK2Integrator
+from pyLorenz.utils.integration.rk2integrator       import MultiStochasticRK2Integrator
 from pyLorenz.utils.integration.rk4integrator       import DeterministicRK4Integrator
 from pyLorenz.utils.integration.rk4integrator       import StochasticRK4Integrator
+from pyLorenz.utils.integration.rk4integrator       import MultiStochasticRK4Integrator
+from pyLorenz.utils.integration.kpintegrator        import DeterministicKPIntegrator
+from pyLorenz.utils.integration.kpintegrator        import StochasticKPIntegrator
+from pyLorenz.utils.integration.kpintegrator        import MultiStochasticKPIntegrator
 from pyLorenz.utils.output.basicoutputprinter       import BasicOutputPrinter
 
 # Output directory
@@ -48,10 +54,17 @@ model.setParameters(sigma, beta, rho)
 # Integrator
 #integrator = DeterministicEulerExplIntegrator()
 #integrator = StochasticEulerExplIntegrator()
+#integrator = MultiStochasticEulerExplIntegrator()
 #integrator = DeterministicRK2Integrator()
 integrator = StochasticRK2Integrator()
+#integrator = MultiStochasticRK2Integrator()
 #integrator = DeterministicRK4Integrator()
 #integrator = StochasticRK4Integrator()
+#integrator = MultiStochasticRK4Integrator()
+#integrator = DeterministicKPIntegrator()
+#integrator = StochasticKPIntegrator()
+#integrator = MultiStochasticKPIntegrator()
+dt         = 0.01
 dt         = 0.01
 ie         = IndependantGaussianRNG()
 ie_m       = np.zeros(3)
