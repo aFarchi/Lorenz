@@ -2,13 +2,13 @@
 
 #__________________________________________________
 # ./
-# runsirfiltersimulation.py
+# runenkffiltersimulation.py
 #__________________________________________________
 # author        : colonel
 # last modified : 2016/9/22
 #__________________________________________________
 #
-# script to launch a SIR filtering simulation
+# script to launch an EnKF filtering simulation
 #
 
 import numpy as np
@@ -16,7 +16,7 @@ import numpy as np
 from pyLorenz.simulation.filtersimulation                  import FilterSimulation
 from pyLorenz.model.lorenz63                               import DeterministicLorenz63Model
 from pyLorenz.model.lorenz63                               import StochasticLorenz63Model
-from pyLorenz.filters.pf.sir                               import SIRPF
+from pyLorenz.filters.kalman.stochasticenkf                import StochasticEnKF
 from pyLorenz.observations.iobservations                   import StochasticIObservations
 from pyLorenz.utils.random.independantgaussianrng          import IndependantGaussianRNG
 from pyLorenz.utils.resampling.stochasticuniversalsampling import StochasticUniversalResampler
@@ -39,7 +39,7 @@ outputDir = '/Users/aFarchi/Desktop/test/Lorenz/'
 # Number of time steps
 Nt = 1000
 # Number of particles
-Ns = 100
+Ns = 10
 # Observation times
 ntObs = np.arange(Nt)
 
@@ -86,17 +86,11 @@ oe_s    = 0.1 * np.ones(3)
 oe      = IndependantGaussianRNG(oe_m, oe_s)
 observe = StochasticIObservations(oe)
 
-# Resampler
-resampler = StochasticUniversalResampler()
-
 # Filter
-oVarInflation = 20.0
-resThreshold  = 0.3
-wTolerance    = 1.0e-8
-sirfilter     = SIRPF(integrator, observe, resampler, oVarInflation, resThreshold, wTolerance)
+enkf = StochasticEnKF(integrator, observe)
 
 # Simulation
-simulation = FilterSimulation(Nt, integrator, initialiser, outputPrinter, Ns, ntObs, sirfilter, observe)
+simulation = FilterSimulation(Nt, integrator, initialiser, outputPrinter, Ns, ntObs, enkf, observe)
 
 simulation.run()
 simulation.recordToFile(outputDir)

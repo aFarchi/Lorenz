@@ -5,7 +5,7 @@
 # stochasticuniversalsampling.py
 #__________________________________________________
 # author        : colonel
-# last modified : 2016/9/20
+# last modified : 2016/9/21
 #__________________________________________________
 #
 # class to handle a Stochastic Universal Resampler
@@ -16,7 +16,12 @@ import numpy.random as rnd
 
 #__________________________________________________
 
-class StochasticUniversalResampler:
+class StochasticUniversalResampler(object):
+
+    #_________________________
+
+    def __init__(self):
+        pass
 
     #_________________________
 

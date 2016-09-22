@@ -14,7 +14,15 @@
 
 import numpy as np
 
-from basicsimulation import BasicSimulation
+from basicsimulation                       import BasicSimulation
+from ..utils.integration.rk4integrator     import DeterministicRK4Integrator
+from ..utils.random.independantgaussianrng import IndependantGaussianRNG
+from ..utils.output.basicoutputprinter     import BasicOutputPrinter
+from ..filters.pf.sir                      import SIRPF
+from ..filters.kalman.stochasticenkf       import StochasticEnKF
+from ..observations.iobservations          import StochasticIObservations
+
+default = object()
 
 #__________________________________________________
 
@@ -22,22 +30,24 @@ class FilterSimulation(BasicSimulation):
 
     #_________________________
 
-    def setParameters(self, t_Nt, t_Ns, t_ntModObs, t_ntFstObs):
-        # set various parameters
-        BasicSimulation.setParameters(self, t_Nt)
-        self.m_Ns       = t_Ns
-        self.m_ntModObs = t_ntModObs
-        self.m_ntFstObs = t_ntFstObs
+    def __init__(self, t_Nt = 1000, t_integrator = DeterministicRK4Integrator(), 
+            t_initialiser = IndependantGaussianRNG(), t_outputPrinter = BasicOutputPrinter(), t_Ns = 10, t_ntObs = default,
+            t_filter = StochasticEnKF(), t_obsOp = StochasticIObservations()):
+        BasicSimulation.__init__(self, t_Nt, t_integrator, t_initialiser, t_outputPrinter)
+        self.setFilterSimulationParameters(t_Ns, t_ntObs, t_filter, t_obsOp)
 
     #_________________________
 
-    def setFilter(self, t_filter):
+    def setFilterSimulationParameters(self, t_Ns = 10, t_ntObs = default, t_filter = StochasticEnKF(), t_obsOp = StochasticIObservations()):
+        # set number of particles / samples
+        self.m_Ns       = t_Ns
+        # set observation times
+        if t_ntObs is default:
+            self.m_ntObs = np.arange(self.m_Nt)
+        else:
+            self.m_ntObs = t_ntObs
         # set filter
         self.m_filter = t_filter
-
-    #_________________________
-
-    def setObservationOperator(self, t_obsOp):
         # set observation operator
         self.m_observationOperator = t_obsOp
 
@@ -52,29 +62,53 @@ class FilterSimulation(BasicSimulation):
         # initialise the filter
         self.m_filter.initialise(self.m_initialiser.drawSamples(self.m_Ns))
         # arrays for tracking
-        self.m_xa_record = np.zeros((self.m_Nt, self.m_model.m_stateDimension))
-        self.m_xo_record = np.zeros(((self.m_Nt-self.m_ntFstObs)/self.m_ntModObs, self.m_model.m_stateDimension))
+        self.m_xa_record = np.zeros((self.m_Nt, self.m_integrator.m_model.m_stateDimension))
+        self.m_xo_record = np.zeros((self.m_Nt, self.m_integrator.m_model.m_stateDimension))
 
     #_________________________
 
-    def timeStep(self, t_nt):
-        self.m_outputPrinter.printStep(t_nt, self)
+    def analyseCycle(self, t_ntStart, t_ntEnd):
+        if t_ntEnd < t_ntStart:
+            return
+        # perform an algorithm step
+        # t_ntStart is the current time step
+        # t_ntEnd is the next time step where a measurement is available
+        self.m_outputPrinter.printStep(t_ntStart, self)
 
-        if np.mod(t_nt-self.m_ntFstObs, self.m_ntModObs) == 0:
-            # observe the truth
-            obs = self.m_observationOperator.process(self.m_xt)
-            # record observation
-            self.m_xo_record[(t_nt-self.m_ntFstObs)/self.m_ntModObs] = obs
-            # analyse observation
-            self.m_filter.analyse(t_nt, obs)
+        # apply time step to the truth and record it
+        for nt in np.arange(t_ntEnd-t_ntStart) + t_ntStart:
+            self.m_xt            = self.m_integrator.process(self.m_xt, nt)
+            self.m_xt_record[nt] = self.m_xt
 
-        # record truth and analyse
-        self.m_xt_record[t_nt] = self.m_xt
-        self.m_xa_record[t_nt] = self.m_filter.estimate()
+        # observe the truth at time step t_ntEnd and record it
+        observation               = self.m_observationOperator.process(self.m_xt, t_ntEnd*self.m_integrator.m_dt)
+        self.m_xo_record[t_ntEnd] = observation
 
-        # apply time step
-        self.m_xt = self.m_integrator.process(self.m_model, self.m_xt)
-        self.m_filter.forecast()
+        # forecast until time step t_ntEnd
+        # pententially making use of the observation
+        # (e.g. for sampling according to a proposal)
+        if t_ntEnd > t_ntStart:
+            self.m_xa_record[t_ntStart:t_ntEnd] = self.m_filter.forecast(t_ntStart, t_ntEnd, observation)
+        #for nt in np.arange(t_ntEnd-t_ntStart) + t_ntStart:
+            #self.m_filter.forecast(t_nt = nt, t_nextObservationTime = t_ntEnd, t_nextObservation = observation)
+            #self.m_xa_record[nt] = self.m_filter.estimate()
+
+        # Analyse observation
+        self.m_xa_record[t_ntEnd] = self.m_filter.analyse(t_ntEnd, observation)
+
+    #_________________________
+
+    def run(self):
+        # run function
+        self.m_outputPrinter.printStart(self)
+
+        self.initialise()
+        self.analyseCycle(0, self.m_ntObs[0])
+        for i in np.arange(self.m_ntObs.size-1):
+            self.analyseCycle(self.m_ntObs[i], self.m_ntObs[i+1])
+        self.analyseCycle(self.m_ntObs[-1], self.m_Nt-1)
+
+        self.m_outputPrinter.printEnd(self)
 
     #_________________________
 
@@ -85,7 +119,9 @@ class FilterSimulation(BasicSimulation):
         ###_____________________________
         ### --->>> TO IMPROVE <<<--- ###
         ###_____________________________
-        self.m_filter.resampledSteps().tofile(t_outputDir+'nt_resampling.bin')
+        (1.0*self.m_ntObs).tofile(t_outputDir+'nt_obs.bin')
+        if isinstance(self.m_filter, SIRPF):
+            self.m_filter.resampledSteps().tofile(t_outputDir+'nt_resampling.bin')
 
     #_________________________
 

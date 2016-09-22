@@ -5,7 +5,7 @@
 # sir.py
 #__________________________________________________
 # author        : colonel
-# last modified : 2016/9/20
+# last modified : 2016/9/22
 #__________________________________________________
 #
 # class to handle a SIR particle filter
@@ -13,47 +13,34 @@
 
 import numpy as np
 
+from ..abstractfilter                                import AbstractFilter
+from ...utils.integration.rk4integrator              import DeterministicRK4Integrator
+from ...observations.iobservations                   import StochasticIObservations
+from ...utils.resampling.stochasticuniversalsampling import StochasticUniversalResampler
+
 #__________________________________________________
 
-class SIRPF:
+class SIRPF(AbstractFilter):
 
     #_________________________
 
-    def __init__(self):
-        # constructor
-        self.m_weightsTolerance = 1.0e-8
-        self.m_resampled        = []
+    def __init__(self, t_integrator = DeterministicRK4Integrator(), t_obsOp = StochasticIObservations(), t_resampler = StochasticUniversalResampler(), 
+            t_observationVarianceInflation = 50.0, t_resamplingThreshold = 0.3, t_weightsTolerance = 1.0e-8):
+        AbstractFilter.__init__(self, t_integrator, t_obsOp)
+        self.setSIRParameters(t_resampler, t_observationVarianceInflation, t_resamplingThreshold, t_weightsTolerance)
+        self.m_resampled = []
 
     #_________________________
 
-    def setParameters(self, t_observationVarianceInflation = 10.0, t_resamplingThreshold = 0.3):
-        # parameters of the SIR algorithm
-        self.m_observationVarianceInflation = t_observationVarianceInflation
-        self.m_resamplingThreshold          = t_resamplingThreshold
-
-    #_________________________
-
-    def setModel(self, t_model):
-        # set model
-        self.m_model = t_model
-
-    #_________________________
-
-    def setIntegrator(self, t_integrator):
-        # set integrator
-        self.m_integrator = t_integrator
-
-    #_________________________
-
-    def setResampler(self, t_resampler):
+    def setSIRParameters(self, t_resampler = StochasticUniversalResampler(), t_observationVarianceInflation = 50.0, t_resamplingThreshold = 0.3, t_weightsTolerance = 1.0e-8):
         # set resampler
         self.m_resampler = t_resampler
-
-    #_________________________
-
-    def setObservationOperator(self, t_obsOp):
-        # set observation operator
-        self.m_observationOperator = t_obsOp
+        # inflation of the variance of the observation pdf
+        self.m_observationVarianceInflation = t_observationVarianceInflation
+        # resampling threshold (for Neff)
+        self.m_resamplingThreshold          = t_resamplingThreshold
+        # tolerance value for the weights given by the observation pdf
+        self.m_weightsTolerance = 1.0e-8
 
     #_________________________
 
@@ -79,8 +66,10 @@ class SIRPF:
     #_________________________
 
     def analyse(self, t_nt, t_obs):
+        # analyse observation at time nt
+
         # observation weights
-        w = self.m_observationOperator.observationPDF(t_obs, self.m_x, self.m_observationVarianceInflation)
+        w = self.m_observationOperator.observationPDF(t_obs, self.m_x, t_nt*self.m_integrator.m_dt, self.m_observationVarianceInflation)
 
         if w.max() < self.m_weightsTolerance:
             ###_____________________________
@@ -104,11 +93,17 @@ class SIRPF:
             (self.m_w, self.m_x) = self.m_resampler.resample(self.m_w, self.m_x)
             self.m_resampled.append(t_nt)
 
+        return self.estimate()
+
     #_________________________
 
-    def forecast(self):
-        # integrate particles
-        self.m_x = self.m_integrator.process(self.m_model, self.m_x)
+    def forecast(self, t_ntStart, t_ntEnd, t_observation):
+        # integrate particles from ntStart to ntEnd, given the observation at ntEnd
+        estimation = np.zeros((t_ntEnd-t_ntStart, self.m_integrator.m_model.m_stateDimension))
+        for nt in np.arange(t_ntEnd-t_ntStart):
+            self.m_x       = self.m_integrator.process(self.m_x, t_ntStart+nt)
+            estimation[nt] = self.estimate()
+        return estimation
 
     #_________________________
 
