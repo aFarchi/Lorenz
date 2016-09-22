@@ -13,43 +13,59 @@
 
 import numpy as np
 
-from ..process.abstractprocess import AbstractStochasticProcess 
-from ..process.abstractprocess import AbstractMultiStochasticProcess
-from ..process.abstractprocess import AbstractDeterministicProcess
+from abstractintegrator              import AbstractStochasticIntegrator
+from abstractintegrator              import AbstractMultiStochasticIntegrator
+from abstractintegrator              import AbstractDeterministicIntegrator 
+from ..random.independantgaussianrng import IndependantGaussianRNG
+from ...model.lorenz63               import DeterministicLorenz63Model
 
 #__________________________________________________
 
-class AbstractKPIntegrator:
+class AbstractKPIntegrator(object):
 
     #_________________________
 
-    def setParameters(self, t_dt):
-        # set integration parameters
-        self.m_dt = t_dt
+    def __init__(self):
+        self.m_deterministicIntegratorClass = DeterministicKPIntegrator
 
     #_________________________
 
-    def deterministicProcess(self, t_model, t_xn):
+    def deterministicProcess(self, t_xn, t_nt):
         # integrates xn
-        dx = t_model.process(t_xn)
+        dx = self.m_model.process(t_xn, t_nt*self.m_dt)
         x  = self.potentiallyAddError(t_xn + dx * self.m_dt)
-        dx = ( t_model.process(x) + dx ) / 2.0
+        dx = ( self.m_model.process(x, (t_nt+1.0)*self.m_dt) + dx ) / 2.0
         return self.potentiallyAddError(t_xn + dx * self.m_dt)
 
 #__________________________________________________
 
-class StochasticKPIntegrator(AbstractKPIntegrator, AbstractStochasticProcess):
-    pass
+class StochasticKPIntegrator(AbstractKPIntegrator, AbstractStochasticIntegrator):
+
+    #_________________________
+
+    def __init__(self, t_eg = IndependantGaussianRNG(), t_dt = 0.01, t_model = DeterministicLorenz63Model()):
+        AbstractKPIntegrator.__init__(self)
+        AbstractStochasticIntegrator.__init__(self, t_eg, t_dt, t_model)
 
 #__________________________________________________
  
-class MultiStochasticKPIntegrator(AbstractKPIntegrator, AbstractMultiStochasticProcess):
-    pass
+class MultiStochasticKPIntegrator(AbstractKPIntegrator, AbstractMultiStochasticIntegrator):
+
+    #_________________________
+
+    def __init__(self, t_eg = IndependantGaussianRNG(), t_dt = 0.01, t_model = DeterministicLorenz63Model()):
+        AbstractKPIntegrator.__init__(self)
+        AbstractMultiStochasticIntegrator.__init__(self, t_eg, t_dt, t_model)
 
 #__________________________________________________
  
-class DeterministicKPIntegrator(AbstractKPIntegrator, AbstractDeterministicProcess):
-    pass
+class DeterministicKPIntegrator(AbstractKPIntegrator, AbstractDeterministicIntegrator):
+
+    #_________________________
+
+    def __init__(self, t_dt = 0.01, t_model = DeterministicLorenz63Model()):
+        AbstractKPIntegrator.__init__(self)
+        AbstractDeterministicIntegrator.__init__(self, t_dt, t_model)
 
 #__________________________________________________
 

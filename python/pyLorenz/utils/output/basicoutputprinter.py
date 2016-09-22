@@ -5,7 +5,7 @@
 # basicoutputprinter.py
 #__________________________________________________
 # author        : colonel
-# last modified : 2016/9/20
+# last modified : 2016/9/21
 #__________________________________________________
 #
 # class to handle a basic output printer for any simulation
@@ -20,7 +20,12 @@ class BasicOutputPrinter:
 
     #_________________________
 
-    def setParameters(self, t_ntMod=100, t_ntFst=0):
+    def __init__(self, t_ntMod = 100, t_ntFst = 0):
+        self.setBasicOutputPrinterParameters(t_ntMod, t_ntFst)
+
+    #_________________________
+
+    def setBasicOutputPrinterParameters(self, t_ntMod = 100, t_ntFst = 0):
         self.m_ntMod = t_ntMod
         self.m_ntFst = t_ntFst
 

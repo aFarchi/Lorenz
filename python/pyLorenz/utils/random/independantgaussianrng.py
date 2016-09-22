@@ -5,7 +5,7 @@
 # independantgaussianrng.py
 #__________________________________________________
 # author        : colonel
-# last modified : 2016/9/20
+# last modified : 2016/9/21
 #__________________________________________________
 #
 # class to handle a gaussian random number generator
@@ -17,21 +17,21 @@ import numpy.random as rnd
 
 #__________________________________________________
 
-class IndependantGaussianRNG:
+class IndependantGaussianRNG(object):
 
     #_________________________
 
-    def __init__(self):
-        self.m_relSigmaMin = 1.0e-5
-        self.setParameters()
+    def __init__(self, t_mean = np.zeros(0), t_sigma = np.zeros(0), t_relSigmaMin = 1.0e-5):
+        self.setIndependantGaussianRNGParameters(t_mean, t_sigma, t_relSigmaMin)
 
     #_________________________
 
-    def setParameters(self, t_mean = np.zeros(0), t_sigma = np.zeros(0)):
+    def setIndependantGaussianRNGParameters(self, t_mean = np.zeros(0), t_sigma = np.zeros(0), t_relSigmaMin = 1.0e-5):
         # set parameter for the gaussian distribution
-        self.m_mean  = t_mean
-        self.m_sigma = np.maximum(t_sigma, self.m_relSigmaMin)
-        self.m_exact = self.m_sigma < self.m_relSigmaMin
+        self.m_relSigmaMin = t_relSigmaMin
+        self.m_mean        = t_mean
+        self.m_sigma       = np.maximum(t_sigma, self.m_relSigmaMin)
+        self.m_exact       = self.m_sigma < self.m_relSigmaMin
 
     #_________________________
 

@@ -13,13 +13,20 @@
 
 import numpy as np
 
+from ..random.independantgaussianrng import IndependantGaussianRNG
+
 #__________________________________________________
 
-class AbstractStochasticProcess:
+class AbstractStochasticProcess(object):
 
     #_________________________
 
-    def setErrorGenerator(self, t_eg):
+    def __init__(self, t_eg = IndependantGaussianRNG()):
+        self.setErrorGenerator(t_eg)
+
+    #_________________________
+
+    def setErrorGenerator(self, t_eg = IndependantGaussianRNG()):
         # error rng
         self.m_errorGenerator = t_eg
 
@@ -39,13 +46,12 @@ class AbstractStochasticProcess:
 
 #__________________________________________________
 
-class AbstractMultiStochasticProcess:
+class AbstractMultiStochasticProcess(AbstractStochasticProcess):
 
     #_________________________
 
-    def setErrorGenerator(self, t_eg):
-        # error rng
-        self.m_errorGenerator = t_eg
+    def __init__(self, t_eg = IndependantGaussianRNG()):
+        AbstractStochasticProcess.__init__(self, t_eg)
 
     #_________________________
 
@@ -62,7 +68,12 @@ class AbstractMultiStochasticProcess:
 
 #__________________________________________________
 
-class AbstractDeterministicProcess:
+class AbstractDeterministicProcess(object):
+
+    #_________________________
+
+    def __init__(self):
+        pass
 
     #_________________________
 

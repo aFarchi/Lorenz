@@ -13,9 +13,11 @@
 
 import numpy as np
 
-from ..process.abstractprocess import AbstractStochasticProcess 
-from ..process.abstractprocess import AbstractMultiStochasticProcess
-from ..process.abstractprocess import AbstractDeterministicProcess
+from abstractintegrator              import AbstractStochasticIntegrator
+from abstractintegrator              import AbstractMultiStochasticIntegrator
+from abstractintegrator              import AbstractDeterministicIntegrator
+from ..random.independantgaussianrng import IndependantGaussianRNG
+from ...model.lorenz63               import DeterministicLorenz63Model
 
 #__________________________________________________
 
@@ -23,33 +25,47 @@ class AbstractRK2Integrator:
 
     #_________________________
 
-    def setParameters(self, t_dt):
-        # set integration parameters
-        self.m_dt = t_dt
+    def __init__(self):
+        self.m_deterministicIntegratorClass = DeterministicRK2Integrator
 
     #_________________________
 
-    def deterministicProcess(self, t_model, t_xn):
+    def deterministicProcess(self, t_xn, t_nt):
         # integrates xn
-        dx = t_model.process(t_xn)
+        dx = self.m_model.process(t_xn, t_nt*self.m_dt)
         x  = self.potentiallyAddError(t_xn + dx * self.m_dt / 2.0)
-        dx = t_model.process(x)
+        dx = self.m_model.process(x, (t_nt+0.5)*self.m_dt)
         return self.potentiallyAddError(t_xn + dx * self.m_dt)
 
 #__________________________________________________
 
-class StochasticRK2Integrator(AbstractRK2Integrator, AbstractStochasticProcess):
-    pass
+class StochasticRK2Integrator(AbstractRK2Integrator, AbstractStochasticIntegrator):
+
+    #_________________________
+
+    def __init__(self, t_eg = IndependantGaussianRNG(), t_dt = 0.01, t_model = DeterministicLorenz63Model()):
+        AbstractRK2Integrator.__init__(self)
+        AbstractStochasticIntegrator.__init__(self, t_eg, t_dt, t_model)
 
 #__________________________________________________
  
-class MultiStochasticRK2Integrator(AbstractRK2Integrator, AbstractMultiStochasticProcess):
-    pass
+class MultiStochasticRK2Integrator(AbstractRK2Integrator, AbstractMultiStochasticIntegrator):
+
+    #_________________________
+
+    def __init__(self, t_eg = IndependantGaussianRNG(), t_dt = 0.01, t_model = DeterministicLorenz63Model()):
+        AbstractRK2Integrator.__init__(self)
+        AbstractMultiStochasticIntegrator.__init__(self, t_eg, t_dt, t_model)
 
 #__________________________________________________
  
-class DeterministicRK2Integrator(AbstractRK2Integrator, AbstractDeterministicProcess):
-    pass
+class DeterministicRK2Integrator(AbstractRK2Integrator, AbstractDeterministicIntegrator):
+
+    #_________________________
+
+    def __init__(self, t_dt = 0.01, t_model = DeterministicLorenz63Model()):
+        AbstractRK2Integrator.__init__(self)
+        AbstractDeterministicIntegrator.__init__(self, t_dt, t_model)
 
 #__________________________________________________
 

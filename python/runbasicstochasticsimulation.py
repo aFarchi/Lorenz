@@ -20,7 +20,6 @@ from pyLorenz.model.lorenz63                        import StochasticLorenz63Mod
 from pyLorenz.utils.random.independantgaussianrng   import IndependantGaussianRNG
 from pyLorenz.utils.integration.eulerexplintegrator import DeterministicEulerExplIntegrator
 from pyLorenz.utils.integration.eulerexplintegrator import StochasticEulerExplIntegrator
-from pyLorenz.utils.integration.eulerexplintegrator import MultiStochasticEulerExplIntegrator
 from pyLorenz.utils.integration.rk2integrator       import DeterministicRK2Integrator
 from pyLorenz.utils.integration.rk2integrator       import StochasticRK2Integrator
 from pyLorenz.utils.integration.rk2integrator       import MultiStochasticRK2Integrator
@@ -39,59 +38,44 @@ outputDir = '/Users/aFarchi/Desktop/test/Lorenz/'
 Nt = 1000
 
 # Model
-model = DeterministicLorenz63Model()
-#model = StochasticLorenz63Model()
 sigma = 10.0
 beta  = 8.0 / 3.0
 rho   = 28.0
-#me    = IndependantGaussianRNG()
 #me_m  = np.zeros(3)
 #me_s  = np.ones(3)
-#me.setParameters(me_m, me_s)
-model.setParameters(sigma, beta, rho)
-#model.setErrorGenerator(me)
+#me    = IndependantGaussianRNG(me_m, me_s)
+model = DeterministicLorenz63Model(sigma, beta, rho)
+#model = StochasticLorenz63Model(sigma, beta, rho, me)
 
 # Integrator
-#integrator = DeterministicEulerExplIntegrator()
-#integrator = StochasticEulerExplIntegrator()
-#integrator = MultiStochasticEulerExplIntegrator()
-#integrator = DeterministicRK2Integrator()
-integrator = StochasticRK2Integrator()
-#integrator = MultiStochasticRK2Integrator()
-#integrator = DeterministicRK4Integrator()
-#integrator = StochasticRK4Integrator()
-#integrator = MultiStochasticRK4Integrator()
-#integrator = DeterministicKPIntegrator()
-#integrator = StochasticKPIntegrator()
-#integrator = MultiStochasticKPIntegrator()
 dt         = 0.01
-dt         = 0.01
-ie         = IndependantGaussianRNG()
 ie_m       = np.zeros(3)
 ie_s       = 0.1 * np.ones(3)
-ie.setParameters(ie_m, ie_s)
-integrator.setParameters(dt)
-integrator.setErrorGenerator(ie)
+ie         = IndependantGaussianRNG(ie_m, ie_s)
+#integrator = DeterministicEulerExplIntegrator(dt, model)
+#integrator = StochasticEulerExplIntegrator(ie, dt, model)
+#integrator = DeterministicRK2Integrator(dt, model)
+#integrator = StochasticRK2Integrator(ie, dt, model)
+#integrator = MultiStochasticRK2Integrator(ie, dt, model)
+#integrator = DeterministicRK4Integrator(dt, model)
+#integrator = StochasticRK4Integrator(ie, dt, model)
+#integrator = MultiStochasticRK4Integrator(ie, dt, model)
+#integrator = DeterministicKPIntegrator(dt, model)
+integrator = StochasticKPIntegrator(ie, dt, model)
+#integrator = MultiStochasticKPIntegrator(ie, dt, model)
 
 # Initialiser
-initialiser = IndependantGaussianRNG()
 init_m      = np.array([2.0, 3.0, 4.0])
 init_v      = np.zeros(3)
-initialiser.setParameters(init_m, init_v)
+initialiser = IndependantGaussianRNG(init_m, init_v)
 
 # Output
-outputPrinter = BasicOutputPrinter()
 op_ntMod      = 100
 op_ntFst      = 0
-outputPrinter.setParameters(op_ntMod, op_ntFst)
+outputPrinter = BasicOutputPrinter(op_ntMod, op_ntFst)
 
 # Simulation
-simulation = BasicSimulation()
-simulation.setParameters(Nt)
-simulation.setModel(model)
-simulation.setIntegrator(integrator)
-simulation.setInitialiser(initialiser)
-simulation.setOutputPrinter(outputPrinter)
+simulation = BasicSimulation(Nt, integrator, initialiser, outputPrinter)
 
 simulation.run()
 simulation.recordToFile(outputDir)

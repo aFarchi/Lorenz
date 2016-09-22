@@ -5,7 +5,7 @@
 # lorenz63.py
 #__________________________________________________
 # author        : colonel
-# last modified : 2016/9/20
+# last modified : 2016/9/21
 #__________________________________________________
 #
 # classes to handle the a Lorenz 1963 model
@@ -14,22 +14,23 @@
 
 import numpy as np
 
-from ..utils.process.abstractprocess import AbstractStochasticProcess
-from ..utils.process.abstractprocess import AbstractDeterministicProcess
+from ..utils.process.abstractprocess       import AbstractStochasticProcess
+from ..utils.process.abstractprocess       import AbstractDeterministicProcess
+from ..utils.random.independantgaussianrng import IndependantGaussianRNG
 
 #__________________________________________________
 
-class AbstractLorenz63Model:
+class AbstractLorenz63Model(object):
 
     #_________________________
 
-    def __init__(self):
-        # constructor
+    def __init__(self, t_sigma = 10.0, t_beta = 8.0 / 3.0, t_rho = 28.0):
         self.m_stateDimension = 3
+        self.setLorenz63ModelParameters(t_sigma, t_beta, t_rho)
 
     #_________________________
 
-    def setParameters(self, t_sigma = 10.0, t_beta = 8.0 / 3.0, t_rho = 28.0):
+    def setLorenz63ModelParameters(self, t_sigma = 10.0, t_beta = 8.0 / 3.0, t_rho = 28.0):
         # set model parameters
         self.m_sigma = t_sigma
         self.m_beta  = t_beta
@@ -37,8 +38,9 @@ class AbstractLorenz63Model:
 
     #_________________________
 
-    def deterministicProcess(self, t_x):
-        # compute dx according to the model
+    def deterministicProcess(self, t_x, t_t):
+        # compute dx at point (x,t) according to the model
+        # here dxonly depens on x
         shape = t_x.shape
         if len(shape) == 1:
             # for one point
@@ -58,12 +60,32 @@ class AbstractLorenz63Model:
 #__________________________________________________
 
 class StochasticLorenz63Model(AbstractLorenz63Model, AbstractStochasticProcess):
-    pass
+
+    #_________________________
+
+    def __init__(self, t_sigma = 10.0, t_beta = 8.0 / 3.0, t_rho = 28.0, t_eg = IndependantGaussianRNG()):
+        AbstractLorenz63Model.__init__(self, t_sigma, t_beta, t_rho)
+        AbstractStochasticProcess.__init__(self, t_eg)
+
+    #_________________________
+
+    def deterministicModel(self):
+        return DeterministicLorenz63Model(self.m_sigma, self.m_beta, self.m_rho)
 
 #__________________________________________________
 
 class DeterministicLorenz63Model(AbstractLorenz63Model, AbstractDeterministicProcess):
-    pass
+
+    #_________________________
+
+    def __init__(self, t_sigma = 10.0, t_beta = 8.0 / 3.0, t_rho = 28.0):
+        AbstractLorenz63Model.__init__(self, t_sigma, t_beta, t_rho)
+        AbstractDeterministicProcess.__init__(self)
+
+    #_________________________
+
+    def deterministicModel(self):
+        return self
 
 #__________________________________________________
 

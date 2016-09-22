@@ -13,41 +13,46 @@
 
 import numpy as np
 
-from ..process.abstractprocess import AbstractStochasticProcess
-from ..process.abstractprocess import AbstractMultiStochasticProcess
-from ..process.abstractprocess import AbstractDeterministicProcess
+from abstractintegrator              import AbstractStochasticIntegrator
+from abstractintegrator              import AbstractDeterministicIntegrator
+from ..random.independantgaussianrng import IndependantGaussianRNG
+from ...model.lorenz63               import DeterministicLorenz63Model
 
 #__________________________________________________
 
-class AbstractEulerExplIntegrator:
+class AbstractEulerExplIntegrator(object):
 
     #_________________________
 
-    def setParameters(self, t_dt):
-        # set integration parameters
-        self.m_dt = t_dt
-
+    def __init__(self):
+        self.m_deterministicIntegratorClass = DeterministicEulerExplIntegrator
+    
     #_________________________
 
-    def deterministicProcess(self, t_model, t_xn):
+    def deterministicProcess(self, t_xn, t_nt):
         # integrates xn
-        dx = t_model.process(t_xn)
-        return self.potentiallyAddError(t_xn + dx * self.m_dt)
+        dx = self.m_model.process(t_xn, t_nt*self.m_dt)
+        return t_xn + dx * self.m_dt
 
 #__________________________________________________
 
-class StochasticEulerExplIntegrator(AbstractEulerExplIntegrator, AbstractStochasticProcess):
-    pass
+class StochasticEulerExplIntegrator(AbstractEulerExplIntegrator, AbstractStochasticIntegrator):
+
+    #_________________________
+
+    def __init__(self, t_eg = IndependantGaussianRNG(), t_dt = 0.01, t_model = DeterministicLorenz63Model()):
+        AbstractEulerExplIntegrator.__init__(self)
+        AbstractStochasticIntegrator.__init__(self, t_eg, t_dt, t_model)
 
 #__________________________________________________
 
-class MultiStochasticEulerExplIntegrator(AbstractEulerExplIntegrator, AbstractMultiStochasticProcess):
-    pass
+class DeterministicEulerExplIntegrator(AbstractEulerExplIntegrator, AbstractDeterministicIntegrator):
 
-#__________________________________________________
+    #_________________________
 
-class DeterministicEulerExplIntegrator(AbstractEulerExplIntegrator, AbstractDeterministicProcess):
-    pass
+    def __init__(self, t_dt = 0.01, t_model = DeterministicLorenz63Model()):
+        AbstractEulerExplIntegrator.__init__(self)
+        AbstractDeterministicIntegrator.__init__(self, t_dt, t_model)
 
 #__________________________________________________
 

@@ -5,7 +5,7 @@
 # basicsimulation.py
 #__________________________________________________
 # author        : colonel
-# last modified : 2016/9/20
+# last modified : 2016/9/21
 #__________________________________________________
 #
 # classes to handle a basic simulation of any model
@@ -14,36 +14,30 @@
 
 import numpy as np
 
+from ..utils.integration.rk4integrator     import DeterministicRK4Integrator
+from ..utils.random.independantgaussianrng import IndependantGaussianRNG
+from ..utils.output.basicoutputprinter     import BasicOutputPrinter
+
 #__________________________________________________
 
-class BasicSimulation:
+class BasicSimulation(object):
 
     #_________________________
 
-    def setParameters(self, t_Nt):
+    def __init__(self, t_Nt = 1000, t_integrator = DeterministicRK4Integrator(),
+            t_initialiser = IndependantGaussianRNG(), t_outputPrinter = BasicOutputPrinter()):
+        self.setBasicSimulationParameters(t_Nt, t_integrator, t_initialiser, t_outputPrinter)
+
+    #_________________________
+
+    def setBasicSimulationParameters(self, t_Nt = 1000, t_integrator = DeterministicRK4Integrator(), 
+            t_initialiser = IndependantGaussianRNG(), t_outputPrinter = BasicOutputPrinter()):
         # set number of time steps
         self.m_Nt = t_Nt
-
-    #_________________________
-
-    def setModel(self, t_model):
-        # set model
-        self.m_model = t_model
-
-    #_________________________
-
-    def setIntegrator(self, t_integrator):
         # set integrator
         self.m_integrator = t_integrator
-    #_________________________
-
-    def setInitialiser(self, t_initialiser):
         # set initialiser
         self.m_initialiser = t_initialiser
-
-    #_________________________
-
-    def setOutputPrinter(self, t_outputPrinter):
         # set output printer
         self.m_outputPrinter = t_outputPrinter
 
@@ -54,16 +48,16 @@ class BasicSimulation:
         # initialise the truth
         self.m_xt = self.m_initialiser.drawSample()
         # Array for tracking
-        self.m_xt_record = np.zeros((self.m_Nt, self.m_model.m_stateDimension))
+        self.m_xt_record = np.zeros((self.m_Nt, self.m_integrator.m_model.m_stateDimension))
 
     #_________________________
 
     def timeStep(self, t_nt):
         self.m_outputPrinter.printStep(t_nt, self)
         # first record truth
-        self.m_xt_record[t_nt, :] = self.m_xt[:]
+        self.m_xt_record[t_nt] = self.m_xt
         # then apply time step
-        self.m_xt = self.m_integrator.process(self.m_model, self.m_xt)
+        self.m_xt = self.m_integrator.process(self.m_xt, t_nt)
 
     #_________________________
 
