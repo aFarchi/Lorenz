@@ -44,5 +44,10 @@ class StochasticIObservations(AbstractStochasticProcess):
         else:
             return self.m_errorGenerator.pdf(np.tile(t_obs, (shape[0], 1))-t_x, t_inflation)
 
+    #_________________________
+
+    def diagonalDifferential(self):
+        return np.ones(self.m_errorGenerator.m_mean.size)
+
 #__________________________________________________
 

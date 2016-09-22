@@ -88,10 +88,7 @@ class FilterSimulation(BasicSimulation):
         # pententially making use of the observation
         # (e.g. for sampling according to a proposal)
         if t_ntEnd > t_ntStart:
-            self.m_xa_record[t_ntStart:t_ntEnd] = self.m_filter.forecast(t_ntStart, t_ntEnd, observation)
-        #for nt in np.arange(t_ntEnd-t_ntStart) + t_ntStart:
-            #self.m_filter.forecast(t_nt = nt, t_nextObservationTime = t_ntEnd, t_nextObservation = observation)
-            #self.m_xa_record[nt] = self.m_filter.estimate()
+            self.m_xa_record[t_ntStart+1:t_ntEnd+1] = self.m_filter.forecast(t_ntStart, t_ntEnd, observation)
 
         # Analyse observation
         self.m_xa_record[t_ntEnd] = self.m_filter.analyse(t_ntEnd, observation)
