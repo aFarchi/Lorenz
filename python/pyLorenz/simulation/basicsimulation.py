@@ -48,7 +48,8 @@ class BasicSimulation(object):
         # initialise the truth
         self.m_xt = self.m_initialiser.drawSample()
         # Array for tracking
-        self.m_xt_record = np.zeros((self.m_Nt, self.m_integrator.m_model.m_stateDimension))
+        self.m_xt_record    = np.zeros((self.m_Nt, self.m_integrator.m_model.m_stateDimension))
+        self.m_xt_record[0] = self.m_xt
 
     #_________________________
 

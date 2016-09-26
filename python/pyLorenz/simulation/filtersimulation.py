@@ -46,6 +46,8 @@ class FilterSimulation(BasicSimulation):
             self.m_ntObs = np.arange(self.m_Nt)
         else:
             self.m_ntObs = t_ntObs
+        if not self.m_ntObs[-1] == self.m_Nt - 1: # always observe last time step
+            self.m_ntObs = np.array(self.m_ntObs.tolist().append(self.m_Nt-1))
         # set filter
         self.m_filter = t_filter
         # set observation operator
@@ -58,12 +60,14 @@ class FilterSimulation(BasicSimulation):
         ###_______________________
         ### --->>> HACK <<<--- ###
         ###_______________________
-        self.m_xt = np.copy(self.m_initialiser.m_mean)
+        self.m_xt           = np.copy(self.m_initialiser.m_mean)
+        self.m_xt_record[0] = self.m_xt
         # initialise the filter
         self.m_filter.initialise(self.m_initialiser.drawSamples(self.m_Ns))
         # arrays for tracking
-        self.m_xa_record = np.zeros((self.m_Nt, self.m_integrator.m_model.m_stateDimension))
-        self.m_xo_record = np.zeros((self.m_Nt, self.m_integrator.m_model.m_stateDimension))
+        self.m_xa_record    = np.zeros((self.m_Nt, self.m_integrator.m_model.m_stateDimension))
+        self.m_xo_record    = np.zeros((self.m_Nt, self.m_integrator.m_model.m_stateDimension))
+        self.m_xa_record[0] = self.m_filter.estimate()
 
     #_________________________
 
@@ -73,12 +77,13 @@ class FilterSimulation(BasicSimulation):
         # perform an algorithm step
         # t_ntStart is the current time step
         # t_ntEnd is the next time step where a measurement is available
-        self.m_outputPrinter.printStep(t_ntStart, self)
+        if t_ntEnd > t_ntStart:
+            self.m_outputPrinter.printStep(t_ntStart, self)
 
         # apply time step to the truth and record it
         for nt in np.arange(t_ntEnd-t_ntStart) + t_ntStart:
-            self.m_xt            = self.m_integrator.process(self.m_xt, nt)
-            self.m_xt_record[nt] = self.m_xt
+            self.m_xt              = self.m_integrator.process(self.m_xt, nt)
+            self.m_xt_record[nt+1] = self.m_xt
 
         # observe the truth at time step t_ntEnd and record it
         observation               = self.m_observationOperator.process(self.m_xt, t_ntEnd*self.m_integrator.m_dt)
@@ -103,7 +108,6 @@ class FilterSimulation(BasicSimulation):
         self.analyseCycle(0, self.m_ntObs[0])
         for i in np.arange(self.m_ntObs.size-1):
             self.analyseCycle(self.m_ntObs[i], self.m_ntObs[i+1])
-        self.analyseCycle(self.m_ntObs[-1], self.m_Nt-1)
 
         self.m_outputPrinter.printEnd(self)
 
@@ -124,12 +128,14 @@ class FilterSimulation(BasicSimulation):
 
     def computeFilterPerformance(self, t_ntDrop=0):
         mse            = np.sqrt ( np.power ( self.m_xt_record - self.m_xa_record , 2.0 ) . sum ( axis = 1 ) )
+        self.FP        = np.copy(mse) # instantaneous performance
         mse[:t_ntDrop] = 0.0 
-        self.meanFP    = mse.cumsum() / np.maximum( np.arange(self.m_Nt) - ( t_ntDrop - 1.0 ) , 1.0 )
+        self.meanFP    = mse.cumsum() / np.maximum( np.arange(self.m_Nt) - ( t_ntDrop - 1.0 ) , 1.0 ) # mean over [ntDrop:t]
 
     #_________________________
     
     def filterPerformanceToFile(self, t_outputDir='./'):
+        self.FP.tofile(t_outputDir+'FP.bin')
         self.meanFP.tofile(t_outputDir+'meanFP.bin')
 
 #__________________________________________________

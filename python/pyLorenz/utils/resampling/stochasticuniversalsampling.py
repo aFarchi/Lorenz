@@ -30,7 +30,7 @@ class StochasticUniversalResampler(object):
         # number of particles
         Ns = t_w.size
         # cumulative weights
-        wc = t_w.cumsum()
+        wc = np.exp(t_w).cumsum()
         # make sure weights are normalized
         wc /= wc[-1]
         # array for the new particles
@@ -45,7 +45,7 @@ class StochasticUniversalResampler(object):
             x[ns]   = t_x[ns]
             # forward cursor
             cursor += 1.0 / Ns
-        return (np.ones(Ns)/Ns, x)
+        return (-np.ones(Ns)*np.log(Ns), x)
 
 #__________________________________________________
 

@@ -62,12 +62,12 @@ class IndependantGaussianRNG(object):
     #_________________________
 
     def pdf(self, t_x, t_inflation = 1.0):
-        # compute the pdf of the noise process at point t_x
+        # compute the pdf in log scale of the noise process at point t_x
         shape = t_x.shape
         if len(shape) == 1:
-            return np.exp ( - np.power ( ( t_x - self.m_mean ) / ( t_inflation * self.m_sigma ) , 2 ) / 2.0 ) . prod()
+            return ( - np.power ( ( t_x - self.m_mean ) / ( t_inflation * self.m_sigma ) , 2 ) / 2.0 ) . sum()
         else:
-            return np.exp ( - np.power ( ( t_x - np.tile( self.m_mean , (shape[0], 1) ) ) / np.tile ( t_inflation * self.m_sigma , (shape[0], 1) ) , 2 ) / 2.0 ) . prod(axis = 1)
+            return ( - np.power ( ( t_x - np.tile( self.m_mean , (shape[0], 1) ) ) / np.tile ( t_inflation * self.m_sigma , (shape[0], 1) ) , 2 ) / 2.0 ) . sum(axis = 1)
 
 #__________________________________________________
 

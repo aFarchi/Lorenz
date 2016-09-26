@@ -35,7 +35,7 @@ class StochasticIObservations(AbstractStochasticProcess):
     #_________________________
 
     def observationPDF(self, t_obs, t_x, t_t, t_inflation = 1.0):
-        # observation pdf at obs - H(x)
+        # observation pdf in log scale at obs - H(x)
         # error variance is inflated by factor t_inflation
         # time is ignored
         shape = t_x.shape
