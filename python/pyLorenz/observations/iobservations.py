@@ -5,7 +5,7 @@
 # iobservations.py
 #__________________________________________________
 # author        : colonel
-# last modified : 2016/9/22
+# last modified : 2016/9/27
 #__________________________________________________
 #
 # class to handle an observation operator that is the identity
@@ -14,16 +14,17 @@
 import numpy as np
 
 from ..utils.process.abstractprocess       import AbstractStochasticProcess
+from ..utils.process.abstractprocess       import AbstractDeterministicProcess
 from ..utils.random.independantgaussianrng import IndependantGaussianRNG
 
 #__________________________________________________
 
-class StochasticIObservations(AbstractStochasticProcess):
+class AbstractIObservations(object):
 
     #_________________________
 
-    def __init__(self, t_eg = IndependantGaussianRNG()):
-        AbstractStochasticProcess.__init__(self, t_eg)
+    def __init__(self):
+        pass
 
     #_________________________
 
@@ -46,8 +47,42 @@ class StochasticIObservations(AbstractStochasticProcess):
 
     #_________________________
 
-    def diagonalDifferential(self):
-        return np.ones(self.m_errorGenerator.m_mean.size)
+    def isLinear(self):
+        # return true if and only if deterministicProcess is a linear operator
+        return True
+
+    #_________________________
+
+    def diagonalDifferential(self, t_x, t_t):
+        # linearisation of deterministicProcess about t_x and t_t
+        # here, since deterministicProcess is linear t_x and t_t do not interfere
+        return np.ones(t_x.shape)
+
+#__________________________________________________
+
+class StochasticIObservations(AbstractIObservations, AbstractStochasticProcess):
+
+    #_________________________
+
+    def __init__(self, t_eg = IndependantGaussianRNG()):
+        AbstractIObservations.__init__(self)
+        AbstractStochasticProcess.__init__(self, t_eg)
+
+    #_________________________
+
+    def deterministicObservationOperator(self):
+        return DeterministicIObservations()
+
+#__________________________________________________
+
+class DeterministicIObservations(AbstractIObservations, AbstractDeterministicProcess):
+
+    #_________________________
+
+    def __init__(self):
+        AbstractIObservations.__init__(self)
+        AbstractDeterministicProcess.__init__(self)
+
 
 #__________________________________________________
 
