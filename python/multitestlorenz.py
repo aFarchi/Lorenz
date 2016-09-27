@@ -20,11 +20,6 @@ from pyLorenz.filters.kalman.stochasticenkf                import StochasticEnKF
 from pyLorenz.observations.iobservations                   import StochasticIObservations
 from pyLorenz.utils.random.independantgaussianrng          import IndependantGaussianRNG
 from pyLorenz.utils.resampling.stochasticuniversalsampling import StochasticUniversalResampler
-from pyLorenz.utils.integration.eulerexplintegrator        import DeterministicEulerExplIntegrator
-from pyLorenz.utils.integration.eulerexplintegrator        import StochasticEulerExplIntegrator
-from pyLorenz.utils.integration.rk2integrator              import DeterministicRK2Integrator
-from pyLorenz.utils.integration.rk2integrator              import StochasticRK2Integrator
-from pyLorenz.utils.integration.rk2integrator              import MultiStochasticRK2Integrator
 from pyLorenz.utils.integration.rk4integrator              import DeterministicRK4Integrator
 from pyLorenz.utils.integration.rk4integrator              import StochasticRK4Integrator
 from pyLorenz.utils.integration.rk4integrator              import MultiStochasticRK4Integrator
@@ -54,8 +49,8 @@ dt         = 0.01
 ie_m       = np.zeros(3)
 ie_s       = 2.0 * dt * np.ones(3)
 ie         = IndependantGaussianRNG(ie_m, ie_s)
-integrator = StochasticRK4Integrator(ie, dt, model)
-#integrator = StochasticKPIntegrator(ie, dt, model)
+#integrator = StochasticRK4Integrator(ie, dt, model)
+integrator = StochasticKPIntegrator(ie, dt, model)
 
 # Initialiser
 init_m      = np.array([-5.91652, -5.52332, 24.5723])
