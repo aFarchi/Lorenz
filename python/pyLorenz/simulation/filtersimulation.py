@@ -47,7 +47,9 @@ class FilterSimulation(BasicSimulation):
         else:
             self.m_ntObs = t_ntObs
         if not self.m_ntObs[-1] == self.m_Nt - 1: # always observe last time step
-            self.m_ntObs = np.array(self.m_ntObs.tolist().append(self.m_Nt-1))
+            l = self.m_ntObs.tolist()
+            l.append(self.m_Nt-1)
+            self.m_ntObs = np.array(l)
         # set filter
         self.m_filter = t_filter
         # set observation operator

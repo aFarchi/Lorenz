@@ -71,16 +71,17 @@ f          = open(outputFile, 'rb')
 ntObs      = np.fromfile(f).astype(int)
 f.close()
 
-Nt      = truth.size / 3
-truth   = truth.reshape((Nt, 3))
-analyse = analyse.reshape((2, Nt, 3))
-obs     = obs.reshape((Nt, 3))[ntObs, :]
+nfilters = 3
+Nt       = truth.size / nfilters
+truth    = truth.reshape((Nt, nfilters))
+analyse  = analyse.reshape((nfilters, Nt, 3))
+obs      = obs.reshape((Nt, 3))[ntObs, :]
 
 ntMin = min(50, Nt)
 ntMax = min(200, Nt)
 
 #fig = fancyPlot(truth[ntMin:ntMax])
-fig = fancyPlot4(truth[ntMin:ntMax], analyse[0,ntMin:ntMax], analyse[1,ntMin:ntMax], obs[ntMin:ntMax], 'b-', 'r-', 'g-', 'b+')
+fig = fancyPlot4(truth[ntMin:ntMax], analyse[0,ntMin:ntMax], analyse[1,ntMin:ntMax], analyse[2,ntMin:ntMax], 'b-', 'r-', 'g-', 'c-')
 
 #fig = fancyPlot2(states1, states2)
 #fig = fancyPlot4(states1[imin:], states2[imin:], states3[imin:], states2[resampling])

@@ -13,16 +13,24 @@
 
 import numpy as np
 
-from pyLorenz.simulation.multifiltersimulation             import MultiFilterSimulation
+from pyLorenz.simulation.filtersimulation                  import FilterSimulation
 from pyLorenz.model.lorenz63                               import DeterministicLorenz63Model
-from pyLorenz.filters.pf.oisir                             import OISIRPF
+from pyLorenz.model.lorenz63                               import StochasticLorenz63Model
 from pyLorenz.filters.pf.rmimplicitpf                      import RMImplicitPF
-from pyLorenz.filters.kalman.stochasticenkf                import StochasticEnKF
 from pyLorenz.observations.iobservations                   import StochasticIObservations
 from pyLorenz.utils.random.independantgaussianrng          import IndependantGaussianRNG
 from pyLorenz.utils.resampling.stochasticuniversalsampling import StochasticUniversalResampler
+from pyLorenz.utils.integration.eulerexplintegrator        import DeterministicEulerExplIntegrator
+from pyLorenz.utils.integration.eulerexplintegrator        import StochasticEulerExplIntegrator
+from pyLorenz.utils.integration.rk2integrator              import DeterministicRK2Integrator
+from pyLorenz.utils.integration.rk2integrator              import StochasticRK2Integrator
+from pyLorenz.utils.integration.rk2integrator              import MultiStochasticRK2Integrator
+from pyLorenz.utils.integration.rk4integrator              import DeterministicRK4Integrator
 from pyLorenz.utils.integration.rk4integrator              import StochasticRK4Integrator
+from pyLorenz.utils.integration.rk4integrator              import MultiStochasticRK4Integrator
+from pyLorenz.utils.integration.kpintegrator               import DeterministicKPIntegrator
 from pyLorenz.utils.integration.kpintegrator               import StochasticKPIntegrator
+from pyLorenz.utils.integration.kpintegrator               import MultiStochasticKPIntegrator
 from pyLorenz.utils.output.basicoutputprinter              import BasicOutputPrinter
 from pyLorenz.utils.minimisation.newtonminimiser           import NewtonMinimiser
 
@@ -30,12 +38,11 @@ from pyLorenz.utils.minimisation.newtonminimiser           import NewtonMinimise
 outputDir = '/Users/aFarchi/Desktop/test/Lorenz/'
 
 # Number of time steps
-Nt = 1200
+Nt = 200
 # Number of particles
 Ns = 10
 # Observation times
-#ntObs = np.arange(Nt)
-ntObs = np.arange(0, Nt, 10)
+ntObs = np.arange(Nt)
 
 # Model
 sigma = 10.0
@@ -48,11 +55,10 @@ dt         = 0.01
 ie_m       = np.zeros(3)
 ie_s       = 2.0 * dt * np.ones(3)
 ie         = IndependantGaussianRNG(ie_m, ie_s)
-#integrator = StochasticRK4Integrator(ie, dt, model)
 integrator = StochasticKPIntegrator(ie, dt, model)
 
 # Initialiser
-init_m      = np.array([-5.91652, -5.52332, 24.5723])
+init_m      = np.array([2.0, 3.0, 4.0])
 init_v      = 0.1 * np.ones(3)
 initialiser = IndependantGaussianRNG(init_m, init_v)
 
@@ -76,32 +82,18 @@ nm_maxIt  = 100
 nm_tol    = 1.0e-8
 minimiser = NewtonMinimiser(nm_dx, nm_maxIt, nm_tol)
 
-# OI Filter
-oVarInflation = 1.0
-resThreshold  = 0.3
-oisir         = OISIRPF(integrator, observe, resampler, oVarInflation, resThreshold)
-
-# RMI Filter
+# Filter
 oVarInflation = 1.0
 resThreshold  = 0.3
 dLambda       = 1.0e-5
 rmifilter     = RMImplicitPF(integrator, observe, resampler, oVarInflation, resThreshold, minimiser, dLambda)
 
-# Kalman filter
-enkf = StochasticEnKF(integrator, observe)
-
 # Simulation
-simulation = MultiFilterSimulation(Nt, integrator, initialiser, outputPrinter, Ns, ntObs, observe)
-simulation.addFilter(oisir)
-simulation.addFilter(rmifilter)
-simulation.addFilter(enkf)
+simulation = FilterSimulation(Nt, integrator, initialiser, outputPrinter, Ns, ntObs, rmifilter, observe)
 
 simulation.run()
 simulation.recordToFile(outputDir)
 
-simulation.computeFilterPerformance(200)
+simulation.computeFilterPerformance(0)
 simulation.filterPerformanceToFile(outputDir)
-
-print('OISIR, number of resampled steps = '+str(len(oisir.resampledSteps())))
-print('RMI, number of resampled steps   = '+str(len(rmifilter.resampledSteps())))
 

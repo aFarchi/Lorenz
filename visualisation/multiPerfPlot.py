@@ -15,9 +15,10 @@ f          = open(outputFile, 'rb')
 FP         = np.fromfile(f)
 f.close()
 
-Nt     = meanFP.size / 2
-meanFP = meanFP.reshape((2,Nt))
-FP     = FP.reshape((2,Nt))
+nfilters = 3
+Nt       = meanFP.size / nfilters
+meanFP   = meanFP.reshape((nfilters, Nt))
+FP       = FP.reshape((nfilters, Nt))
 
 fig = plt.figure()
 ax  = fig.gca()
@@ -25,8 +26,11 @@ ax  = fig.gca()
 #ax.plot(FP[0], 'b--', label='OISIR, instantaneous')
 ax.plot(meanFP[0], 'b-', label='OISIR, average')
 
-#ax.plot(FP[1], 'r--', label='EnKF, instantaneous')
-ax.plot(meanFP[1], 'r-', label='EnKF, average')
+#ax.plot(FP[1], 'r--', label='RMI, instantaneous')
+ax.plot(meanFP[1], 'r-', label='RMI, average')
+
+#ax.plot(FP[2], 'c--', label='EnKF, instantaneous')
+ax.plot(meanFP[2], 'c-', label='EnKF, average')
 
 plt.legend(loc='best')
 plt.savefig(outputDir+'FP.pdf')

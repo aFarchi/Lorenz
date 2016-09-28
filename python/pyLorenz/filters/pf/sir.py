@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 
 #__________________________________________________
-# pyLorenz/filters/pf
+# pyLorenz/filters/pf/
 # sir.py
 #__________________________________________________
 # author        : colonel
@@ -82,10 +82,9 @@ class SIRPF(AbstractFilter):
         # third step of analyse : resample
         # note that here we only resample if Neff < resamplingThreshold
         if self.Neff() < self.m_resamplingThreshold:
-            ###_______________________________
-            ### --->>> REMOVE PRINT <<<--- ###
-            ###_______________________________
-            print('resampling, nt='+str(t_nt))
+            #-----------------------------------
+            # print('resampling, nt='+str(t_nt))
+            #-----------------------------------
             (self.m_w, self.m_x) = self.m_resampler.resample(self.m_w, self.m_x)
             # keep record of resampled steps...
             self.m_resampled.append(t_nt)

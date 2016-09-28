@@ -1,16 +1,20 @@
 #! /usr/bin/env python
 
 #__________________________________________________
-# pyLorenz/filters/pf
-# sir.py
+# pyLorenz/filters/pf/
+# oisir.py
 #__________________________________________________
 # author        : colonel
-# last modified : 2016/9/27
+# last modified : 2016/9/28
 #__________________________________________________
 #
-# class to handle a SIR particle filter that uses the optimal importance function
-# assuming noise are additive (i.e. StochasticProcess class is used) gaussian and independant
-# for both observation operator and integrator
+# class to handle a SIR particle filter that uses the optimal importance function as proposal
+#
+# We assume that noise are additive (i.e. StochasticProcess class is used) and gaussian (i.e. the statistics are 2nd order)
+# and components are independant (i.e observation operator [or its differential if it is not linear] is diagonal, covariance matrices 
+# for observation and model noise too)
+#
+# The model does not need to be linear, however the observation operator does. If not, then it will be linearized.
 #
 
 import numpy as np
@@ -28,7 +32,7 @@ class OISIRPF(SIRPF):
     #_________________________
 
     def __init__(self, t_integrator = DeterministicRK4Integrator(), t_obsOp = StochasticIObservations(), t_resampler = StochasticUniversalResampler(), 
-            t_observationVarianceInflation = 50.0, t_resamplingThreshold = 0.3):
+            t_observationVarianceInflation = 1.0, t_resamplingThreshold = 0.3):
         SIRPF.__init__(self, t_integrator, t_obsOp, t_resampler, t_observationVarianceInflation, t_resamplingThreshold)
         self.m_deterministicIntegrator          = self.m_integrator.deterministicIntegrator()
         self.m_deterministicObservationOperator = self.m_observationOperator.deterministicObservationOperator()
@@ -84,14 +88,14 @@ class OISIRPF(SIRPF):
         # shape = (Ns, 3)
         sigma_m   = np.tile(sigma_m, (self.m_Ns, 1))
         sigma_o   = np.tile(sigma_o, (self.m_Ns, 1))
-        self.m_fx = self.m_deterministicIntegrator.process(self.m_x, t_ntEnd - 1)
+        self.m_fx = self.m_deterministicIntegrator.process(self.m_x, t_ntEnd-1)
         H         = self.m_observationOperator.diagonalDifferential(self.m_x, t_ntEnd*self.m_integrator.m_dt)
 
         # proposal
         self.sigmaP = 1.0 / ( 1.0 / sigma_m + H * ( 1.0 / sigma_o ) * H )
         ycorr       = np.tile(t_observation, (self.m_Ns, 1))
         if not self.m_observationOperator.isLinear():
-            ycorr  += - self.m_deterministicObservationOperator(self.m_fx) + H * self.m_fx
+            ycorr  += - self.m_deterministicObservationOperator.process(self.m_fx, t_ntEnd*self.m_integrator.m_dt) + H * self.m_fx
         self.meanP  = self.sigmaP * ( ( 1.0 / sigma_m ) * self.m_fx + H * ( 1.0 / sigma_o ) * ycorr )
 
         # sample x[ntEnd] according to N(meanP, sigmaP)
