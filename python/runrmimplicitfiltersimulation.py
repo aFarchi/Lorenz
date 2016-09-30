@@ -38,11 +38,11 @@ from pyLorenz.utils.minimisation.newtonminimiser           import NewtonMinimise
 outputDir = '/Users/aFarchi/Desktop/test/Lorenz/'
 
 # Number of time steps
-Nt = 200
+Nt = 1200
 # Number of particles
 Ns = 10
 # Observation times
-ntObs = np.arange(Nt)
+ntObs = np.arange(0, Nt, 2)
 
 # Model
 sigma = 10.0
@@ -58,7 +58,7 @@ ie         = IndependantGaussianRNG(ie_m, ie_s)
 integrator = StochasticKPIntegrator(ie, dt, model)
 
 # Initialiser
-init_m      = np.array([2.0, 3.0, 4.0])
+init_m      = np.array([-5.91652, -5.52332, 24.5723])
 init_v      = 0.1 * np.ones(3)
 initialiser = IndependantGaussianRNG(init_m, init_v)
 
@@ -94,6 +94,8 @@ simulation = FilterSimulation(Nt, integrator, initialiser, outputPrinter, Ns, nt
 simulation.run()
 simulation.recordToFile(outputDir)
 
-simulation.computeFilterPerformance(0)
+simulation.computeFilterPerformance(200)
 simulation.filterPerformanceToFile(outputDir)
+
+print('RMI, number of resampled steps   = '+str(len(rmifilter.resampledSteps())))
 

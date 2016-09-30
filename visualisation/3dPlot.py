@@ -88,7 +88,7 @@ ntMin = min(50, Nt)
 ntMax = min(200, Nt)
 
 #fig = fancyPlot(truth[ntMin:ntMax])
-fig = fancyPlot3(truth[ntMin:ntMax], analyse[ntMin:ntMax], obs[ntMin:ntMax])
+fig = fancyPlot3(truth[ntMin:ntMax], analyse[ntMin:ntMax], obs[25:100])
 
 #fig = fancyPlot2(states1, states2)
 #fig = fancyPlot4(states1[imin:], states2[imin:], states3[imin:], states2[resampling])
