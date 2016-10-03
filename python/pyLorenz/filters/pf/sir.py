@@ -17,6 +17,7 @@ from ..abstractfilter                                import AbstractFilter
 from ...utils.integration.rk4integrator              import DeterministicRK4Integrator
 from ...observations.iobservations                   import StochasticIObservations
 from ...utils.resampling.stochasticuniversalsampling import StochasticUniversalResampler
+from ...utils.trigger.thresholdtrigger               import ThresholdTrigger
 
 #__________________________________________________
 
@@ -25,30 +26,38 @@ class SIRPF(AbstractFilter):
     #_________________________
 
     def __init__(self, t_integrator = DeterministicRK4Integrator(), t_obsOp = StochasticIObservations(), t_resampler = StochasticUniversalResampler(), 
-            t_observationVarianceInflation = 50.0, t_resamplingThreshold = 0.3):
+            t_observationVarianceInflation = 1.0, t_resamplingTrigger = ThresholdTrigger(0.3), t_Ns = 10):
         AbstractFilter.__init__(self, t_integrator, t_obsOp)
-        self.setSIRParameters(t_resampler, t_observationVarianceInflation, t_resamplingThreshold)
+        self.setSIRParameters(t_resampler, t_observationVarianceInflation, t_resamplingTrigger, t_Ns)
         self.m_resampled = []
 
     #_________________________
 
-    def setSIRParameters(self, t_resampler = StochasticUniversalResampler(), t_observationVarianceInflation = 50.0, t_resamplingThreshold = 0.3):
-        # set resampler
+    def setSIRParameters(self, t_resampler = StochasticUniversalResampler(), t_observationVarianceInflation = 1.0, t_resamplingTrigger = ThresholdTrigger(0.3), t_Ns = 10):
+        # number of particles
+        self.m_Ns                           = t_Ns
+        # resampler
         self.m_resampler                    = t_resampler
         # inflation of the variance of the observation pdf
         self.m_observationVarianceInflation = t_observationVarianceInflation
-        # resampling threshold (for Neff)
-        self.m_resamplingThreshold          = t_resamplingThreshold
+        # resampling trigger
+        self.m_resamplingTrigger            = t_resamplingTrigger
 
     #_________________________
 
-    def initialise(self, t_x):
+    def initialise(self, t_initialiser, t_Nt):
         # particles / samples
-        self.m_x  = t_x
-        # number of particles / samples
-        self.m_Ns = t_x.shape[0]
+        self.m_x        = t_initialiser.drawSamples(self.m_Ns)
         # relative weights in ln scale
-        self.m_w  = - np.ones(self.m_Ns) * np.log(self.m_Ns)
+        self.m_w        = - np.ones(self.m_Ns) * np.log(self.m_Ns)
+
+        # estimations
+        self.m_estimate = np.zeros((t_Nt, self.m_integrator.m_model.m_stateDimension))
+        self.m_neff     = np.ones(t_Nt)
+
+        # fill first guess
+        self.m_estimate[0] = self.estimate()
+        self.m_neff[0]     = self.Neff()
 
     #_________________________
 
@@ -60,6 +69,9 @@ class SIRPF(AbstractFilter):
     #_________________________
 
     def resampledSteps(self):
+        ###_____________________________
+        ### --->>> TO IMPROVE <<<--- ###
+        ###_____________________________
         return 1.0 * np.array(self.m_resampled)
 
     #_________________________
@@ -80,14 +92,15 @@ class SIRPF(AbstractFilter):
 
     def resample(self, t_nt):
         # third step of analyse : resample
-        # note that here we only resample if Neff < resamplingThreshold
-        if self.Neff() < self.m_resamplingThreshold:
+        if self.m_resamplingTrigger.trigger(self.Neff(), t_nt):
             #-----------------------------------
             # print('resampling, nt='+str(t_nt))
             #-----------------------------------
             (self.m_w, self.m_x) = self.m_resampler.resample(self.m_w, self.m_x)
-            # keep record of resampled steps...
+            # keep record of resampled step
             self.m_resampled.append(t_nt)
+
+        self.m_neff[t_nt] = self.Neff()
 
     #_________________________
 
@@ -95,24 +108,32 @@ class SIRPF(AbstractFilter):
         # analyse observation at time nt
         self.reweight(t_nt, t_obs)
         self.normaliseWeights()
-        self.resample(t_nt)
-        return self.estimate()
+        self.resample(t_nt) # and write Neff()
+        self.m_estimate[t_nt] = self.estimate()
 
     #_________________________
 
     def forecast(self, t_ntStart, t_ntEnd, t_observation):
         # integrate particles from ntStart to ntEnd, given the observation at ntEnd
-        estimation = np.zeros((t_ntEnd-t_ntStart, self.m_integrator.m_model.m_stateDimension))
-        for nt in np.arange(t_ntEnd-t_ntStart):
-            self.m_x       = self.m_integrator.process(self.m_x, t_ntStart+nt)
-            estimation[nt] = self.estimate()
-        return estimation
+        for nt in t_ntStart + np.arange(t_ntEnd-t_ntStart):
+            self.m_x              = self.m_integrator.process(self.m_x, nt)
+            self.m_estimate[nt+1] = self.estimate()
+
+        self.m_neff[t_ntStart+1:t_ntEnd+1] = self.Neff()
+        # note : the values of self.m_estimate[t_ntEnd] and self.m_neff[t_ntEnd] do not matter since it will be replaced after analyse
 
     #_________________________
 
     def estimate(self):
         # mean of x
         return np.average(self.m_x, axis = 0, weights = np.exp(self.m_w))
+
+    #_________________________
+
+    def recordToFile(self, t_outputDir = './', t_filterPrefix = 'sir'):
+        self.m_estimate.tofile(t_outputDir+t_filterPrefix+'_estimation.bin')
+        self.m_neff.tofile(t_outputDir+t_filterPrefix+'_neff.bin')
+        self.resampledSteps().tofile(t_outputDir+t_filterPrefix+'_resampled.bin')
 
 #__________________________________________________
 

@@ -31,16 +31,14 @@ class FilterSimulation(BasicSimulation):
     #_________________________
 
     def __init__(self, t_Nt = 1000, t_integrator = DeterministicRK4Integrator(), 
-            t_initialiser = IndependantGaussianRNG(), t_outputPrinter = BasicOutputPrinter(), t_Ns = 10, t_ntObs = default,
+            t_initialiser = IndependantGaussianRNG(), t_outputPrinter = BasicOutputPrinter(), t_ntObs = default,
             t_filter = StochasticEnKF(), t_obsOp = StochasticIObservations()):
         BasicSimulation.__init__(self, t_Nt, t_integrator, t_initialiser, t_outputPrinter)
-        self.setFilterSimulationParameters(t_Ns, t_ntObs, t_filter, t_obsOp)
+        self.setFilterSimulationParameters(t_ntObs, t_filter, t_obsOp)
 
     #_________________________
 
-    def setFilterSimulationParameters(self, t_Ns = 10, t_ntObs = default, t_filter = StochasticEnKF(), t_obsOp = StochasticIObservations()):
-        # set number of particles / samples
-        self.m_Ns       = t_Ns
+    def setFilterSimulationParameters(self, t_ntObs = default, t_filter = StochasticEnKF(), t_obsOp = StochasticIObservations()):
         # set observation times
         if t_ntObs is default:
             self.m_ntObs = np.arange(self.m_Nt)
@@ -63,13 +61,13 @@ class FilterSimulation(BasicSimulation):
         ### --->>> HACK <<<--- ###
         ###_______________________
         self.m_xt           = np.copy(self.m_initialiser.m_mean)
-        self.m_xt_record[0] = self.m_xt
-        # initialise the filter
-        self.m_filter.initialise(self.m_initialiser.drawSamples(self.m_Ns))
+
         # arrays for tracking
-        self.m_xa_record    = np.zeros((self.m_Nt, self.m_integrator.m_model.m_stateDimension))
+        self.m_xt_record[0] = self.m_xt
         self.m_xo_record    = np.zeros((self.m_Nt, self.m_integrator.m_model.m_stateDimension))
-        self.m_xa_record[0] = self.m_filter.estimate()
+
+        # initialise the filter
+        self.m_filter.initialise(self.m_initialiser, self.m_Nt)
 
     #_________________________
 
@@ -95,10 +93,10 @@ class FilterSimulation(BasicSimulation):
         # pententially making use of the observation
         # (e.g. for sampling according to a proposal)
         if t_ntEnd > t_ntStart:
-            self.m_xa_record[t_ntStart+1:t_ntEnd+1] = self.m_filter.forecast(t_ntStart, t_ntEnd, observation)
+            self.m_filter.forecast(t_ntStart, t_ntEnd, observation)
 
         # Analyse observation
-        self.m_xa_record[t_ntEnd] = self.m_filter.analyse(t_ntEnd, observation)
+        self.m_filter.analyse(t_ntEnd, observation)
 
     #_________________________
 
@@ -115,30 +113,19 @@ class FilterSimulation(BasicSimulation):
 
     #_________________________
 
-    def recordToFile(self, t_outputDir='./'):
-        BasicSimulation.recordToFile(self, t_outputDir)
-        self.m_xa_record.tofile(t_outputDir+'xa_record.bin')
-        self.m_xo_record.tofile(t_outputDir+'xo_record.bin')
+    def observedSteps(self):
         ###_____________________________
         ### --->>> TO IMPROVE <<<--- ###
         ###_____________________________
-        (1.0*self.m_ntObs).tofile(t_outputDir+'nt_obs.bin')
-        if isinstance(self.m_filter, SIRPF):
-            self.m_filter.resampledSteps().tofile(t_outputDir+'nt_resampling.bin')
+        return 1.0 * self.m_ntObs
 
     #_________________________
 
-    def computeFilterPerformance(self, t_ntDrop=0):
-        mse            = np.sqrt ( np.power ( self.m_xt_record - self.m_xa_record , 2.0 ) . sum ( axis = 1 ) )
-        self.FP        = np.copy(mse) # instantaneous performance
-        mse[:t_ntDrop] = 0.0 
-        self.meanFP    = mse.cumsum() / np.maximum( np.arange(self.m_Nt) - ( t_ntDrop - 1.0 ) , 1.0 ) # mean over [ntDrop:t]
-
-    #_________________________
-    
-    def filterPerformanceToFile(self, t_outputDir='./'):
-        self.FP.tofile(t_outputDir+'FP.bin')
-        self.meanFP.tofile(t_outputDir+'meanFP.bin')
+    def recordToFile(self, t_outputDir = './', t_filterPrefix = ''):
+        BasicSimulation.recordToFile(self, t_outputDir)
+        self.m_xo_record.tofile(t_outputDir+'xo_record.bin')
+        self.observedSteps().tofile(t_outputDir+'nt_obs.bin')
+        self.m_filter.recordToFile(t_outputDir, t_filterPrefix)
 
 #__________________________________________________
 

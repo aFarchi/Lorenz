@@ -21,6 +21,7 @@ from ...utils.integration.rk4integrator              import DeterministicRK4Inte
 from ...observations.iobservations                   import StochasticIObservations
 from ...utils.resampling.stochasticuniversalsampling import StochasticUniversalResampler
 from ...utils.minimisation.newtonminimiser           import NewtonMinimiser
+from ...utils.trigger.thresholdtrigger               import ThresholdTrigger
 
 #__________________________________________________
 
@@ -29,8 +30,8 @@ class RMImplicitPF(SIRPF):
     #_________________________
 
     def __init__(self, t_integrator = DeterministicRK4Integrator(), t_obsOp = StochasticIObservations(), t_resampler = StochasticUniversalResampler(), 
-            t_observationVarianceInflation = 1.0, t_resamplingThreshold = 0.3, t_minimiser = NewtonMinimiser(), t_perturbationLambda = 1.0e-5):
-        SIRPF.__init__(self, t_integrator, t_obsOp, t_resampler, t_observationVarianceInflation, t_resamplingThreshold)
+            t_observationVarianceInflation = 1.0, t_resamplingTrigger = ThresholdTrigger(0.3), t_Ns = 10, t_minimiser = NewtonMinimiser(), t_perturbationLambda = 1.0e-5):
+        SIRPF.__init__(self, t_integrator, t_obsOp, t_resampler, t_observationVarianceInflation, t_resamplingTrigger, t_Ns)
         self.setRMImplicitPFParameters(t_minimiser, t_perturbationLambda)
         self.m_deterministicIntegrator          = self.m_integrator.deterministicIntegrator()
         self.m_deterministicObservationOperator = self.m_observationOperator.deterministicObservationOperator()
@@ -40,20 +41,21 @@ class RMImplicitPF(SIRPF):
     def setRMImplicitPFParameters(self, t_minimiser = NewtonMinimiser(), t_perturbationLambda = 1.0e-5):
         self.m_minimiser          = t_minimiser
         self.m_perturbationLambda = t_perturbationLambda
+
     #_________________________
 
     def forecast(self, t_ntStart, t_ntEnd, t_observation):
         # integrate particles from ntStart to ntEnd, given the observation at ntEnd
         # this includes analyse step for conveniance
 
-        r = t_ntEnd - t_ntStart # number of steps to predict
-        d = self.m_integrator.m_model.m_stateDimension # state dimension
-
-        sigma_m = self.m_integrator.m_errorGenerator.m_sigma # model error covariance
+        # shortcuts
+        r       = t_ntEnd - t_ntStart                                 # number of steps to predict
+        d       = self.m_integrator.m_model.m_stateDimension          # state dimension
+        sigma_m = self.m_integrator.m_errorGenerator.m_sigma          # model error covariance
         sigma_o = self.m_observationOperator.m_errorGenerator.m_sigma # observation error covariance
 
         trajectory = np.zeros((self.m_Ns, r, d)) # prediction
-        w = np.zeros(self.m_Ns) # associated weights
+        w          = np.zeros(self.m_Ns) # associated weights
 
         for i in np.arange(self.m_Ns): # for each particle
 
@@ -144,24 +146,19 @@ class RMImplicitPF(SIRPF):
         self.normaliseWeights()
         self.resample(t_ntEnd)
 
-        # estimation of the trajectory
-        estimation = np.zeros((r,d))
+        # estimation of the trajectory after the analyse
         for nt in np.arange(r):
-            estimation[nt] = np.average(trajectory[:,nt,:], axis = 0, weights = np.exp(self.m_w))
+            self.m_estimate[t_ntStart+nt+1] = np.average(trajectory[:,nt,:], axis = 0, weights = np.exp(self.m_w))
+        self.m_neff[t_ntStart+1:t_ntEnd+1] = self.Neff()
 
         # update model state
         self.m_x[:,:] = trajectory[:,r-1,:]
-
-        return estimation
 
     #_________________________
 
     def analyse(self, t_nt, t_obs):
         if t_nt == 0:
-            return SIRPF.analyse(self, t_nt, t_obs)
-        else:
-            # analyse step is now included in the forecast step
-            return self.estimate()
+            SIRPF.analyse(self, t_nt, t_obs)
 
 #__________________________________________________
 

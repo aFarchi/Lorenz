@@ -74,7 +74,7 @@ class BasicSimulation(object):
 
     #_________________________
 
-    def recordToFile(self, t_outputDir='./'):
+    def recordToFile(self, t_outputDir = './'):
         self.m_xt_record.tofile(t_outputDir+'xt_record.bin')
 
 #__________________________________________________

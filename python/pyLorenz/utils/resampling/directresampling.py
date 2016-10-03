@@ -2,13 +2,13 @@
 
 #__________________________________________________
 # pyLorenz/utils/resampling/
-# stochasticuniversalsampling.py
+# directresampling.py
 #__________________________________________________
 # author        : colonel
 # last modified : 2016/9/29
 #__________________________________________________
 #
-# class to handle a Stochastic Universal Resampler
+# class to handle a Direct Resampler
 #
 
 import numpy as np
@@ -16,7 +16,7 @@ import numpy.random as rnd
 
 #__________________________________________________
 
-class StochasticUniversalResampler(object):
+class DirectResampler(object):
 
     #_________________________
 
@@ -33,16 +33,14 @@ class StochasticUniversalResampler(object):
         wc  = np.exp(t_w).cumsum()
         # array for the new indices
         i   = np.arange(Ns)
-        # draw random number in [0,1/Ns]
-        cursor = rnd.rand() * wc[-1] / Ns
-        sample = 0
+
         for ns in np.arange(Ns):
             # search for particle to duplicate
+            cursor = rnd.rand() * wc[-1]
+            sample = 0
             while wc[sample] < cursor:
                 sample += 1
             i[ns]   = sample
-            # forward cursor
-            cursor += wc[-1] / Ns
         return i
 
     #_________________________
