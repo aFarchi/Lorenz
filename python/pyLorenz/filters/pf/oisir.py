@@ -5,26 +5,22 @@
 # oisir.py
 #__________________________________________________
 # author        : colonel
-# last modified : 2016/9/28
+# last modified : 2016/10/9
 #__________________________________________________
 #
 # class to handle a SIR particle filter that uses the optimal importance function as proposal
 #
-# We assume that noise are additive (i.e. StochasticProcess class is used) and gaussian (i.e. the statistics are 2nd order)
-# and components are independant (i.e observation operator [or its differential if it is not linear] is diagonal, covariance matrices 
-# for observation and model noise too)
-#
-# The model does not need to be linear, however the observation operator does. If not, then it will be linearized.
+# TODO : FINISH THIS FILTER !!!!!
 #
 
 import numpy as np
 import numpy.random as rnd
 
-from sir                                             import SIRPF
-from ...utils.integration.rk4integrator              import DeterministicRK4Integrator
-from ...observations.iobservations                   import StochasticIObservations
-from ...utils.resampling.stochasticuniversalsampling import StochasticUniversalResampler
-from ...utils.trigger.thresholdtrigger               import ThresholdTrigger
+from sir                                          import SIRPF
+from ...utils.integration.rk4integrator           import DeterministicRK4Integrator
+from ...observations.iobservations                import StochasticIObservations
+from ...utils.random.stochasticuniversalresampler import StochasticUniversalResampler
+from ...utils.trigger.thresholdtrigger            import ThresholdTrigger
 
 #__________________________________________________
 
@@ -35,8 +31,6 @@ class OISIRPF(SIRPF):
     def __init__(self, t_integrator = DeterministicRK4Integrator(), t_obsOp = StochasticIObservations(), t_resampler = StochasticUniversalResampler(), 
             t_observationVarianceInflation = 1.0, t_resamplingTrigger = ThresholdTrigger(0.3), t_Ns = 10):
         SIRPF.__init__(self, t_integrator, t_obsOp, t_resampler, t_observationVarianceInflation, t_resamplingTrigger, t_Ns)
-        self.m_deterministicIntegrator          = self.m_integrator.deterministicIntegrator()
-        self.m_deterministicObservationOperator = self.m_observationOperator.deterministicObservationOperator()
 
     #_________________________
 
@@ -52,47 +46,50 @@ class OISIRPF(SIRPF):
 
         # for the last integration, we use the optimal importance proposal
 
-        sigma_m = np.tile(self.m_integrator.m_errorGenerator.m_sigma, (self.m_Ns, 1))
-        sigma_o = np.tile(self.m_observationOperator.m_errorGenerator.m_sigma, (self.m_Ns, 1))
-        fx      = self.m_deterministicIntegrator.process(self.m_x, t_ntEnd-1)
-        H       = self.m_observationOperator.diagonalDifferential(self.m_x, t_ntEnd*self.m_integrator.m_dt)
+        # auxiliary variables
+        sigma_m     = self.m_integrator.errorCovarianceMatrix(t_ntEnd-1)
+        sigma_o     = self.m_observationOperator.errorCovarianceMatrix(t_ntEnd-1)
+        sigma_m_inv = np.linalg.inv(sigma_m)
+        sigma_o_inv = np.linalg.inv(sigma_o)
+        fx          = self.m_integrator.deterministicProcess(self.m_x, t_ntEnd-1)
+        H           = self.m_observationOperator.differential(self.m_x, t_ntEnd)
+
+        #---------------------------- 
+        # TODO : write this filter...
+        # (like in the diag case...)
+        #---------------------------- 
 
         # proposal
-        sigmaP = 1.0 / ( 1.0 / sigma_m + H * ( 1.0 / sigma_o ) * H )
-        ycorr  = np.tile(t_observation, (self.m_Ns, 1))
-        if not self.m_observationOperator.isLinear():
-            ycorr += H * fx - self.m_deterministicObservationOperator.process(fx, t_ntEnd*self.m_integrator.m_dt)
-        meanP  = sigmaP * ( ( 1.0 / sigma_m ) * fx + H * ( 1.0 / sigma_o ) * ycorr )
+        sigma_p     = np.linalg.inv( sigma_m_inv + np.dot( np.transpose(H) , np.dot( sigma_o_inv , H ) ) )
 
-        # sample x[ntEnd] according to N(meanP, sigmaP)
-        self.m_x = rnd.normal(meanP, sigmaP)
+            # S     = np.linalg.inv( sigma_m + np.dot( np.transpose(H) , np.dot( sigma_o , H ) ) )
+            #------------------------------------- 
+            S     = np.linalg.inv( sigma_o + np.dot( H , np.dot( sigma_m , np.transpose(H) ) ) )
 
-        # classic analyse process
-        if self.m_observationOperator.isLinear():
-            sigma = 1.0 / ( sigma_m + H * sigma_o * H )
-            ino   = ycorr - H * fx
-            w     = - 0.5 * (ino*sigma*ino).sum(axis = 1) # p(obs|x[nt-1])
-        else:
-            ino   = np.tile(t_observation, (self.m_Ns, 1)) - self.m_observationOperator.process(self.m_x)
-            w     = - 0.5 * (ino*(1.0/sigma_o)*ino).sum(axis = 1) # p(obs|x[nt])
-            me    = self.m_x - fx
-            w    += - 0.5 * (me*(1.0/sigma_m)*me).sum(axis = 1) # p(x[nt]|x[nt-1])
-            pe    = self.m_x - meanP
-            w    -= - 0.5 * (pe*(1.0/self.sigmaP)*pe).sum(axis = 1) # proposal
+            for ns in np.arange(self.m_Ns):
+                #--------------------------------------- 
+                # COULD BE VECTORIZED WITH TENSORDOT ???
+                #--------------------------------------- 
+                mean = np.dot( sigma , np.dot ( sigma_m_inv , fx[ns] ) + np.dot ( np.transpose(H) , np.dot ( sigma_o_inv , t_observation ) ) )
 
-        self.m_w += w
-        self.normaliseWeights()
-        self.resample(t_ntEnd)
+                # sample from N(mean, sigma)
+                self.m_x[ns] = rnd.multivariate_normal(mean, sigma)
+                # ------------------------------------------------------------------------------
+                # Note that python seem to be bad at sampling from multivariate_normal
+                # e.g. if sigma is diagonal, a better behavior is observed when sampling using :
+                # self.m_x[ns] = rnd.normal(mean, np.diag(sigma))
+                # although there is no theoretical difference
+                # ------------------------------------------------------------------------------
 
-        # estimation after the analyse
-        self.m_estimate[t_ntEnd] = self.estimate()
-        self.m_neff[t_ntEnd]     = self.Neff()
+                # correct weight
+                ino = t_observation - np.dot( H , fx[ns] )
+                self.m_w[ns] += - np.dot( ino , np.dot( S , ino ) ) / 2.0 # p(obs|x[nt-1])
 
     #_________________________
 
-    def analyse(self, t_nt, t_obs):
+    def reweight(self, t_nt, t_observation):
         if t_nt == 0:
-            SIRPF.analyse(self, t_nt, t_obs)
+            SIRPF.reweight(self, t_nt, t_observation)
 
 #__________________________________________________
 

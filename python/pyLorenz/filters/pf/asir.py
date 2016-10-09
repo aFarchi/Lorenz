@@ -5,20 +5,19 @@
 # asir.py
 #__________________________________________________
 # author        : colonel
-# last modified : 2016/9/29
+# last modified : 2016/10/6
 #__________________________________________________
 #
 # class to handle an ASIR particle filter
 #
 
 import numpy as np
-import numpy.random as rnd
 
-from sir                                             import SIRPF
-from ...utils.integration.rk4integrator              import DeterministicRK4Integrator
-from ...observations.iobservations                   import StochasticIObservations
-from ...utils.resampling.stochasticuniversalsampling import StochasticUniversalResampler
-from ...utils.trigger.thresholdtrigger               import ThresholdTrigger
+from sir                                          import SIRPF
+from ...utils.integration.rk4integrator           import DeterministicRK4Integrator
+from ...observations.iobservations                import StochasticIObservations
+from ...utils.random.stochasticuniversalresampler import StochasticUniversalResampler
+from ...utils.trigger.thresholdtrigger            import ThresholdTrigger
 
 #__________________________________________________
 
@@ -29,7 +28,6 @@ class ASIRPF(SIRPF):
     def __init__(self, t_integrator = DeterministicRK4Integrator(), t_obsOp = StochasticIObservations(), t_resampler = StochasticUniversalResampler(), 
             t_observationVarianceInflation = 1.0, t_resamplingTrigger = ThresholdTrigger(0.3), t_Ns = 10):
         SIRPF.__init__(self, t_integrator, t_obsOp, t_resampler, t_observationVarianceInflation, t_resamplingTrigger, t_Ns)
-        self.m_deterministicIntegrator = self.m_integrator.deterministicIntegrator()
 
     #_________________________
 
@@ -37,20 +35,20 @@ class ASIRPF(SIRPF):
         # integrate particles from ntStart to ntEnd, given the observation at ntEnd
 
         for nt in t_ntStart + np.arange(t_ntEnd-t_ntStart-1):
-            self.m_x              = self.m_integrator.process(self.m_x, nt)
-            self.m_estimate[nt+1] = self.estimate()
+            self.m_x                 = self.m_integrator.process(self.m_x, nt)
+            self.m_estimate[nt+1, :] = self.estimate()
 
         self.m_neff[t_ntStart+1:t_ntEnd+1] = self.Neff()
 
         # for the last integration, we use the ASIR
 
         # first stage
-        fsx = self.m_deterministicIntegrator.process(self.m_x, t_ntEnd-1)
-        fsw = self.m_observationOperator.observationPDF(t_observation, fsx, t_ntEnd*self.m_integrator.m_dt, self.m_observationVarianceInflation) # p(obs|fsx)
+        fsx = self.m_integrator.deterministicProcess(self.m_x, t_ntEnd-1)
+        fsw = self.m_observationOperator.pdf(t_observation, fsx, t_ntEnd, self.m_observationVarianceInflation) # p(obs|fsx)
 
         # sample indices from Proba(i = k) = w[k] + fsw[k]
         # note that we do not need the weights to be normalized since the resampler make sure of it
-        indices = self.m_resampler.sampleIndices(self.m_w+fsw)
+        indices = self.m_resampler.sampleIndices(self.m_Ns, self.m_w+fsw)
 
         # now integrate particles from ntEnd-1 to ntEnd given the indices
         # i.e. particle #k at time ntEnd will be integrated from particle #indices[k]

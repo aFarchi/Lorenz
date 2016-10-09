@@ -5,7 +5,7 @@
 # sir.py
 #__________________________________________________
 # author        : colonel
-# last modified : 2016/9/22
+# last modified : 2016/10/6
 #__________________________________________________
 #
 # class to handle a SIR particle filter
@@ -13,11 +13,11 @@
 
 import numpy as np
 
-from ..abstractfilter                                import AbstractFilter
-from ...utils.integration.rk4integrator              import DeterministicRK4Integrator
-from ...observations.iobservations                   import StochasticIObservations
-from ...utils.resampling.stochasticuniversalsampling import StochasticUniversalResampler
-from ...utils.trigger.thresholdtrigger               import ThresholdTrigger
+from ..abstractfilter                             import AbstractFilter
+from ...utils.integration.rk4integrator           import DeterministicRK4Integrator
+from ...observations.iobservations                import StochasticIObservations
+from ...utils.random.stochasticuniversalresampler import StochasticUniversalResampler
+from ...utils.trigger.thresholdtrigger            import ThresholdTrigger
 
 #__________________________________________________
 
@@ -42,22 +42,24 @@ class SIRPF(AbstractFilter):
         self.m_observationVarianceInflation = t_observationVarianceInflation
         # resampling trigger
         self.m_resamplingTrigger            = t_resamplingTrigger
+        # space dimension
+        self.m_spaceDimension               = self.m_integrator.m_spaceDimension
 
     #_________________________
 
     def initialise(self, t_initialiser, t_Nt):
         # particles / samples
-        self.m_x        = t_initialiser.drawSamples(self.m_Ns)
+        self.m_x        = t_initialiser.initialiseSamples(self.m_Ns)
         # relative weights in ln scale
         self.m_w        = - np.ones(self.m_Ns) * np.log(self.m_Ns)
 
         # estimations
-        self.m_estimate = np.zeros((t_Nt, self.m_integrator.m_model.m_stateDimension))
+        self.m_estimate = np.zeros((t_Nt, self.m_spaceDimension))
         self.m_neff     = np.ones(t_Nt)
 
         # fill first guess
-        self.m_estimate[0] = self.estimate()
-        self.m_neff[0]     = self.Neff()
+        self.m_estimate[0, :] = self.estimate()
+        self.m_neff[0]        = self.Neff()
 
     #_________________________
 
@@ -69,16 +71,16 @@ class SIRPF(AbstractFilter):
     #_________________________
 
     def resampledSteps(self):
-        ###_____________________________
-        ### --->>> TO IMPROVE <<<--- ###
-        ###_____________________________
+        #-------------------
+        # TODO: improve this
+        #-------------------
         return 1.0 * np.array(self.m_resampled)
 
     #_________________________
 
-    def reweight(self, t_nt, t_obs):
+    def reweight(self, t_nt, t_observation):
         # first step of analyse : reweight ensemble according to observation weights
-        self.m_w += self.m_observationOperator.observationPDF(t_obs, self.m_x, t_nt*self.m_integrator.m_dt, self.m_observationVarianceInflation)
+        self.m_w += self.m_observationOperator.pdf(t_observation, self.m_x, t_nt, self.m_observationVarianceInflation)
 
     #_________________________
 
@@ -96,7 +98,7 @@ class SIRPF(AbstractFilter):
             #-----------------------------------
             # print('resampling, nt='+str(t_nt))
             #-----------------------------------
-            (self.m_w, self.m_x) = self.m_resampler.resample(self.m_w, self.m_x)
+            (self.m_w, self.m_x) = self.m_resampler.sample(self.m_Ns, self.m_w, self.m_x)
             # keep record of resampled step
             self.m_resampled.append(t_nt)
 
@@ -109,15 +111,15 @@ class SIRPF(AbstractFilter):
         self.reweight(t_nt, t_obs)
         self.normaliseWeights()
         self.resample(t_nt) # and write Neff()
-        self.m_estimate[t_nt] = self.estimate()
+        self.m_estimate[t_nt :] = self.estimate()
 
     #_________________________
 
     def forecast(self, t_ntStart, t_ntEnd, t_observation):
         # integrate particles from ntStart to ntEnd, given the observation at ntEnd
         for nt in t_ntStart + np.arange(t_ntEnd-t_ntStart):
-            self.m_x              = self.m_integrator.process(self.m_x, nt)
-            self.m_estimate[nt+1] = self.estimate()
+            self.m_x                 = self.m_integrator.process(self.m_x, nt)
+            self.m_estimate[nt+1, :] = self.estimate()
 
         self.m_neff[t_ntStart+1:t_ntEnd+1] = self.Neff()
         # note : the values of self.m_estimate[t_ntEnd] and self.m_neff[t_ntEnd] do not matter since it will be replaced after analyse

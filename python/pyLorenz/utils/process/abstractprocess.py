@@ -28,21 +28,31 @@ class AbstractStochasticProcess(object):
 
     def setErrorGenerator(self, t_eg = IndependantGaussianRNG()):
         # error rng
+        # it will be called at the end of method stochasticProcess()
         self.m_errorGenerator = t_eg
 
     #_________________________
 
-    def potentiallyAddError(self, t_x):
-        # for compatibility with multi stochastic processes
-        # will be called by the deterministicProcess() method
-        # it should not add error since error will be added in the end
-        return t_x
+    def stochasticProcess(self, t_x, t_t):
+        return self.m_errorGenerator.addError(self.deterministicProcess(t_x, t_t), t_t)
 
     #_________________________
 
-    def process(self, *args, **kwargs):
-        # call deterministic process and add error
-        return self.m_errorGenerator.addError(self.deterministicProcess(*args, **kwargs))
+    def process(self, t_x, t_t):
+        # call stochastic process and add error
+        return self.stochasticProcess(t_x, t_t)
+
+    #_________________________
+
+    def errorCovarianceMatrix(self, t_t):
+        # returns covariance matrix of the error rng
+        return self.m_errorGenerator.covarianceMatrix(t_t)
+
+    #_________________________
+
+    def errorCovarianceMatrix_diag(self, t_t):
+        # returns diagonal of the covariance matrix of the error rng
+        return self.m_errorGenerator.covarianceMatrix_diag(t_t)
 
 #__________________________________________________
 
@@ -50,21 +60,22 @@ class AbstractMultiStochasticProcess(AbstractStochasticProcess):
 
     #_________________________
 
-    def __init__(self, t_eg = IndependantGaussianRNG()):
+    def __init__(self, t_eg = []):
         AbstractStochasticProcess.__init__(self, t_eg)
 
     #_________________________
 
-    def potentiallyAddError(self, t_x):
-        # add error to vector x
-        return self.m_errorGenerator.addError(t_x)
+    def addErrorGenerator(self, t_eg = IndependantGaussianRNG()):
+        # append error rng to the list
+        # they will be called after each sub-process in method multiStochasticProcess()
+        self.m_errorGenerator.append(t_eg)
 
     #_________________________
 
-    def process(self, *args, **kwargs):
-        # call deterministic process
-        # no need to add error here since error is added with the potentiallyAddError() method
-        return self.deterministicProcess(*args, **kwargs)
+    def process(self, t_x, t_t):
+        # call multiStochasticProcess
+        # note that it should be implemented
+        return self.multiStochasticProcess(t_x, t_t)
 
 #__________________________________________________
 
@@ -77,17 +88,9 @@ class AbstractDeterministicProcess(object):
 
     #_________________________
 
-    def potentiallyAddError(self, t_x):
-        # for compatibility with multi stochastic processes
-        # will be called by the deterministicProcess() method
-        # it should not add error since we are deterministic here
-        return t_x
-
-    #_________________________
-
-    def process(self, *args, **kwargs):
+    def process(self, t_x, t_t):
         # call deterministic process
-        return self.deterministicProcess(*args, **kwargs)
+        return self.deterministicProcess(t_x, t_t)
 
 #__________________________________________________
 

@@ -1,55 +1,50 @@
 #! /usr/bin/env python
 
 #__________________________________________________
-# pyLorenz/utils/resampling/
-# directresampling.py
+# pyLorenz/utils/random/
+# stochasticuniversalsampler.py
 #__________________________________________________
 # author        : colonel
-# last modified : 2016/9/29
+# last modified : 2016/10/9
 #__________________________________________________
 #
-# class to handle a Direct Resampler
+# class to handle a Stochastic Universal Resampler
 #
 
 import numpy as np
 import numpy.random as rnd
 
+from abstractresampler import AbstractResampler
+
 #__________________________________________________
 
-class DirectResampler(object):
+class StochasticUniversalResampler(AbstractResampler):
 
     #_________________________
 
     def __init__(self):
-        pass
+        AbstractResampler.__init__(self)
 
     #_________________________
 
-    def sampleIndices(self, t_w):
+    def sampleIndices(self, t_Ns, t_w):
         # sample indices according to Proba(X = i) = exp(t_w[i])
-        # number of particles
-        Ns  = t_w.size
+        i   = np.arange(t_Ns)
         # cumulative weights
         wc  = np.exp(t_w).cumsum()
-        # array for the new indices
-        i   = np.arange(Ns)
 
-        for ns in np.arange(Ns):
+        # draw random number in [0,1/t_Ns]
+        cursor = rnd.rand() * wc[-1] / t_Ns
+        sample = 0
+
+        for ns in np.arange(t_Ns):
             # search for particle to duplicate
-            cursor = rnd.rand() * wc[-1]
-            sample = 0
             while wc[sample] < cursor:
                 sample += 1
             i[ns]   = sample
+            # forward cursor
+            cursor += wc[-1] / t_Ns
         return i
-
-    #_________________________
-
-    def resample(self, t_w, t_x):
-        # resample particles t_x from the weights t_w
-        indices = self.sampleIndices(t_w)
-        Ns      = t_w.size
-        return (-np.ones(Ns)*np.log(Ns), t_x[indices])
 
 #__________________________________________________
 

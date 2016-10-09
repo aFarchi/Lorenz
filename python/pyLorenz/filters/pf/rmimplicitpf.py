@@ -5,7 +5,7 @@
 # rmimplicitpf.py
 #__________________________________________________
 # author        : colonel
-# last modified : 2016/9/28
+# last modified : 2016/10/6
 #__________________________________________________
 #
 # class to handle a SIR particle filter that uses the optimal importance function
@@ -14,14 +14,13 @@
 #
 
 import numpy as np
-import numpy.random as rnd
 
-from sir                                             import SIRPF
-from ...utils.integration.rk4integrator              import DeterministicRK4Integrator
-from ...observations.iobservations                   import StochasticIObservations
-from ...utils.resampling.stochasticuniversalsampling import StochasticUniversalResampler
-from ...utils.minimisation.newtonminimiser           import NewtonMinimiser
-from ...utils.trigger.thresholdtrigger               import ThresholdTrigger
+from sir                                          import SIRPF
+from ...utils.integration.rk4integrator           import DeterministicRK4Integrator
+from ...observations.iobservations                import StochasticIObservations
+from ...utils.random.stochasticuniversalresampler import StochasticUniversalResampler
+from ...utils.minimisation.newtonminimiser        import NewtonMinimiser
+from ...utils.trigger.thresholdtrigger            import ThresholdTrigger
 
 #__________________________________________________
 
@@ -33,8 +32,6 @@ class RMImplicitPF(SIRPF):
             t_observationVarianceInflation = 1.0, t_resamplingTrigger = ThresholdTrigger(0.3), t_Ns = 10, t_minimiser = NewtonMinimiser(), t_perturbationLambda = 1.0e-5):
         SIRPF.__init__(self, t_integrator, t_obsOp, t_resampler, t_observationVarianceInflation, t_resamplingTrigger, t_Ns)
         self.setRMImplicitPFParameters(t_minimiser, t_perturbationLambda)
-        self.m_deterministicIntegrator          = self.m_integrator.deterministicIntegrator()
-        self.m_deterministicObservationOperator = self.m_observationOperator.deterministicObservationOperator()
 
     #_________________________
 
@@ -49,10 +46,8 @@ class RMImplicitPF(SIRPF):
         # this includes analyse step for conveniance
 
         # shortcuts
-        r       = t_ntEnd - t_ntStart                                 # number of steps to predict
-        d       = self.m_integrator.m_model.m_stateDimension          # state dimension
-        sigma_m = self.m_integrator.m_errorGenerator.m_sigma          # model error covariance
-        sigma_o = self.m_observationOperator.m_errorGenerator.m_sigma # observation error covariance
+        r = t_ntEnd - t_ntStart   # number of steps to predict
+        d = self.m_spaceDimension # state dimension
 
         trajectory = np.zeros((self.m_Ns, r, d)) # prediction
         w          = np.zeros(self.m_Ns) # associated weights
@@ -60,31 +55,17 @@ class RMImplicitPF(SIRPF):
         for i in np.arange(self.m_Ns): # for each particle
 
             def Fi(Xi):
-                # cost function for particle i
-                # Fi(Xi) = Fi(xi[n0+1]...xi[n0+r]) = - 2 * log ( p ( xi[n0+1] | xi[n0] ) * ... * p ( xi[n0+r] | xi[n0+r-1] ) * p ( y[n0+r] | xi[n0+r] ) )
-                # here Xi is expected as a d*r-vector
-                # with Xi[d*nt:d*(nt+1)] = xi[nt]
-                #
-                # note that n0 = t_ntStart, y[n0+r] and xi[n0] are given
-
-                me = Xi[:d] - self.m_deterministicIntegrator.process(self.m_x[i], t_ntStart) # model error when integrating xi[n0]
-                p  = ( me * ( 1.0 / sigma_m ) * me ).sum() # - 2 * log ( p ( xi[n0+1] | xi[n0] ) )
-                for nt in np.arange(r-1):
-                    me   = Xi[d*(nt+1):d*(nt+2)] - self.m_deterministicIntegrator.process(Xi[d*nt:d*(nt+1)], t_ntStart+nt+1) # model error when integrating xi[n0+nt+1]
-                    p   += ( me * ( 1.0 / sigma_m ) * me ).sum() # - 2 * log ( p ( xi[n0+nt+2] | xi[n0+nt+1] ) )
-
-                oe  = t_observation - self.m_deterministicObservationOperator.process(Xi[d*(r-1):], t_ntEnd*self.m_integrator.m_dt) # observation error at n0+r
-                p  += ( oe * ( 1.0 / sigma_o ) * oe ).sum() # - 2 * log ( p ( y[n0+r] | xi[n0+r] ) )
-
-                return p / 2.0
+                # cost function to minimise for particle i
+                # it is the pdf of the trajectory
+                # plus the pdf of the observation
+                p  = self.m_integrator.trajectoryPDF(t_ntStart, t_ntEnd, self.m_x[i], Xi)
+                p -= self.m_observationOperator.pdf(t_observation, Xi[-d:], t_ntEnd)
+                return p
 
             # We first want to minimise Fi
             # for that we use Newton's method
             # and we initialise the algorihtm with a model run
-            Xi0     = np.zeros(d*r)
-            Xi0[:d] = self.m_deterministicIntegrator.process(self.m_x[i], t_ntStart)
-            for nt in np.arange(r-1):
-                Xi0[d*(nt+1):d*(nt+2)] = self.m_deterministicIntegrator.process(Xi0[d*nt:d*(nt+1)], t_ntStart+nt+1)
+            Xi0 = self.m_integrator.initialiseTrajectory(t_ntStart, t_ntEnd, self.m_x[i])
 
             # minimisation of Fi
             # mui = argmin(Fi)
@@ -101,7 +82,7 @@ class RMImplicitPF(SIRPF):
             Li = np.linalg.cholesky(Hi)
 
             # Random sample
-            zetai = np.random.normal(np.zeros(d*r), np.ones(d*r)) # zetai ~ N(O,I)
+            zetai = self.m_integrator.randomSampleForTrajectory(t_ntStart, t_ntEnd) # zetai ~ N(O,I)
             rhoi  = ( zetai * zetai ).sum()
 
             # We now want to solve Fi ( mui + lambdai * transpose(Li) * zetai / sqrt(rohi) ) = phi + 0.5 * rhoi
@@ -123,7 +104,7 @@ class RMImplicitPF(SIRPF):
             #---------------------------------
 
             # Record the computed trajectory
-            trajectory[i] = ( mui + lambdai * diri ).reshape((r,d))
+            trajectory[i, :, :] = ( mui + lambdai * diri ).reshape((r,d)) # TODO: update this in case for multistochastic processes
 
             # Finally we compute the updated weights
             # for that we need the value of the jacobian of the map zetai -> Xi
@@ -141,17 +122,16 @@ class RMImplicitPF(SIRPF):
             # update weight in log scale
             w[i] = logJi - phi
 
-        # classic analyse process
+        # compute new weights
         self.m_w += w
         self.normaliseWeights()
-        self.resample(t_ntEnd)
 
-        # estimation of the trajectory after the analyse
+        # estimation of the trajectory
         for nt in np.arange(r):
-            self.m_estimate[t_ntStart+nt+1] = np.average(trajectory[:,nt,:], axis = 0, weights = np.exp(self.m_w))
-        self.m_neff[t_ntStart+1:t_ntEnd+1] = self.Neff()
+            self.m_estimate[t_ntStart+nt+1, :] = np.average(trajectory[:,nt,:], axis = 0, weights = np.exp(self.m_w))
+        self.m_neff[t_ntStart+1:t_ntEnd+1]     = self.Neff()
 
-        # update model state
+        # update state
         self.m_x[:,:] = trajectory[:,r-1,:]
 
     #_________________________
@@ -159,6 +139,10 @@ class RMImplicitPF(SIRPF):
     def analyse(self, t_nt, t_obs):
         if t_nt == 0:
             SIRPF.analyse(self, t_nt, t_obs)
+        else:
+            # only perform resampling if needed since the weights have been updated in the forecast process
+            self.resample(t_nt)
+            self.m_estimate[t_nt :] = self.estimate()
 
 #__________________________________________________
 

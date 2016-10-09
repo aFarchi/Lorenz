@@ -25,22 +25,24 @@ class AbstractLorenz63Model(object):
     #_________________________
 
     def __init__(self, t_sigma = 10.0, t_beta = 8.0 / 3.0, t_rho = 28.0):
-        self.m_stateDimension = 3
         self.setLorenz63ModelParameters(t_sigma, t_beta, t_rho)
 
     #_________________________
 
     def setLorenz63ModelParameters(self, t_sigma = 10.0, t_beta = 8.0 / 3.0, t_rho = 28.0):
-        # set model parameters
+        # model parameters
         self.m_sigma = t_sigma
         self.m_beta  = t_beta
         self.m_rho   = t_rho
+
+        # state space dimension
+        self.m_spaceDimension = 3
 
     #_________________________
 
     def deterministicProcess(self, t_x, t_t):
         # compute dx at point (x,t) according to the model
-        # here dxonly depens on x
+        # here dx only depens on x
         shape = t_x.shape
         if len(shape) == 1:
             # for one point

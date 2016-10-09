@@ -13,6 +13,7 @@
 #
 
 import numpy as np
+import time  as tm
 
 #__________________________________________________
 
@@ -33,6 +34,7 @@ class BasicOutputPrinter:
 
     def printStart(self, t_simulation):
         # print output when starting simulation
+        self.m_timeStart = tm.time()
         print('Starting simulation')
 
     #_________________________
@@ -46,13 +48,23 @@ class BasicOutputPrinter:
     def printStep(self, t_nt, t_simulation):
         # print output for step nt of simulation
         if np.mod(t_nt, self.m_ntMod) == self.m_ntFst:
-            print('Running step # '+str(t_nt)+' / '+str(t_simulation.m_Nt))
+            et  = str(tm.time()-self.m_timeStart)
+            try:
+                etr = str((tm.time()-self.m_timeStartLoop)*(t_simulation.m_Nt-t_nt)/t_nt)
+            except:
+                self.m_timeStartLoop = tm.time()
+                etr = '***'
+            print('Running step # '+str(t_nt)+' / '+str(t_simulation.m_Nt)+' *** et = '+et+' *** etr = '+etr)
 
     #_________________________
 
     def printEnd(self, t_simulation):
         # print output when ending simulation
+        et  = str(tm.time()-self.m_timeStart)
+        mt  = str((tm.time()-self.m_timeStartLoop)/t_simulation.m_Nt)
         print('Simulation finished')
+        print('Total elapsed time      = '+et)
+        print('Mean time per iteration = '+mt)
 
 #__________________________________________________
 

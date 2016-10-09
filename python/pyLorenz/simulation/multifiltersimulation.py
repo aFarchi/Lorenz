@@ -5,7 +5,7 @@
 # multifiltersimulation.py
 #__________________________________________________
 # author        : colonel
-# last modified : 2016/9/21
+# last modified : 2016/10/6
 #__________________________________________________
 #
 # classes to handle a basic simulation of any model
@@ -14,14 +14,13 @@
 
 import numpy as np
 
-from basicsimulation                       import BasicSimulation
-from filtersimulation                      import FilterSimulation
-from ..utils.integration.rk4integrator     import DeterministicRK4Integrator
-from ..utils.random.independantgaussianrng import IndependantGaussianRNG
-from ..utils.output.basicoutputprinter     import BasicOutputPrinter
-from ..filters.pf.sir                      import SIRPF
-from ..filters.kalman.stochasticenkf       import StochasticEnKF
-from ..observations.iobservations          import StochasticIObservations
+from basicsimulation                                       import BasicSimulation
+from filtersimulation                                      import FilterSimulation
+from ..utils.integration.rk4integrator                     import DeterministicRK4Integrator
+from ..utils.initialisation.gaussianindependantinitialiser import GaussianIndependantInitialiser
+from ..utils.output.basicoutputprinter                     import BasicOutputPrinter
+from ..filters.kalman.stochasticenkf                       import StochasticEnKF
+from ..observations.iobservations                          import StochasticIObservations
 
 default = object()
 
@@ -32,7 +31,7 @@ class MultiFilterSimulation(FilterSimulation):
     #_________________________
 
     def __init__(self, t_Nt = 1000, t_integrator = DeterministicRK4Integrator(),
-            t_initialiser = IndependantGaussianRNG(), t_outputPrinter = BasicOutputPrinter(), t_ntObs = default, t_obsOp = StochasticIObservations()):
+            t_initialiser = GaussianIndependantInitialiser(), t_outputPrinter = BasicOutputPrinter(), t_ntObs = default, t_obsOp = StochasticIObservations()):
         FilterSimulation.__init__(self, t_Nt, t_integrator, t_initialiser, t_outputPrinter, t_ntObs, [], t_obsOp)
         self.m_filtersLabel = []
 
@@ -47,15 +46,8 @@ class MultiFilterSimulation(FilterSimulation):
 
     def initialise(self):
         BasicSimulation.initialise(self)
-        ###_______________________
-        ### --->>> HACK <<<--- ###
-        ###_______________________
-        self.m_xt           = np.copy(self.m_initialiser.m_mean)
-
         # arrays for tracking
-        self.m_xt_record[0] = self.m_xt
-        self.m_xo_record    = np.zeros((self.m_Nt, self.m_integrator.m_model.m_stateDimension))
-
+        self.m_xo_record = np.zeros((self.m_Nt, self.m_observationOperator.m_spaceDimension))
         # initialise the filters
         for tfilter in self.m_filter:
             tfilter.initialise(self.m_initialiser, self.m_Nt)
@@ -73,12 +65,12 @@ class MultiFilterSimulation(FilterSimulation):
 
         # apply time step to the truth and record it
         for nt in np.arange(t_ntEnd-t_ntStart) + t_ntStart:
-            self.m_xt              = self.m_integrator.process(self.m_xt, nt)
-            self.m_xt_record[nt+1] = self.m_xt
+            self.m_xt                 = self.m_integrator.process(self.m_xt, nt)
+            self.m_xt_record[nt+1, :] = self.m_xt
 
         # observe the truth at time step t_ntEnd and record it
-        observation               = self.m_observationOperator.process(self.m_xt, t_ntEnd*self.m_integrator.m_dt)
-        self.m_xo_record[t_ntEnd] = observation
+        observation                  = self.m_observationOperator.process(self.m_xt, t_ntEnd)
+        self.m_xo_record[t_ntEnd, :] = observation
 
         # forecast until time step t_ntEnd
         # pententially making use of the observation
@@ -90,14 +82,6 @@ class MultiFilterSimulation(FilterSimulation):
         # Analyse observation
         for tfilter in self.m_filter:
             tfilter.analyse(t_ntEnd, observation)
-
-    #_________________________
-
-    def observedSteps(self):
-        ###_____________________________
-        ### --->>> TO IMPROVE <<<--- ###
-        ###_____________________________
-        return 1.0 * self.m_ntObs
 
     #_________________________
 

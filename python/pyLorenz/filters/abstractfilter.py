@@ -5,7 +5,7 @@
 # abstractfilter.py
 #__________________________________________________
 # author        : colonel
-# last modified : 2016/9/22
+# last modified : 2016/10/9
 #__________________________________________________
 #
 # abstract class to handle a filtering process
@@ -24,7 +24,7 @@ class AbstractFilter(object):
 
     def __init__(self, t_integrator = DeterministicRK4Integrator(), t_obsOp = StochasticIObservations()):
         # set integrator
-        self.m_integrator = t_integrator
+        self.m_integrator          = t_integrator
         # set observation operator
         self.m_observationOperator = t_obsOp
 

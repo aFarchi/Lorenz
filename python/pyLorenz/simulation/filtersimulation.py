@@ -14,13 +14,12 @@
 
 import numpy as np
 
-from basicsimulation                       import BasicSimulation
-from ..utils.integration.rk4integrator     import DeterministicRK4Integrator
-from ..utils.random.independantgaussianrng import IndependantGaussianRNG
-from ..utils.output.basicoutputprinter     import BasicOutputPrinter
-from ..filters.pf.sir                      import SIRPF
-from ..filters.kalman.stochasticenkf       import StochasticEnKF
-from ..observations.iobservations          import StochasticIObservations
+from basicsimulation                                       import BasicSimulation
+from ..utils.integration.rk4integrator                     import DeterministicRK4Integrator
+from ..utils.initialisation.gaussianindependantinitialiser import GaussianIndependantInitialiser
+from ..utils.output.basicoutputprinter                     import BasicOutputPrinter
+from ..filters.kalman.stochasticenkf                       import StochasticEnKF
+from ..observations.iobservations                          import StochasticIObservations
 
 default = object()
 
@@ -31,7 +30,7 @@ class FilterSimulation(BasicSimulation):
     #_________________________
 
     def __init__(self, t_Nt = 1000, t_integrator = DeterministicRK4Integrator(), 
-            t_initialiser = IndependantGaussianRNG(), t_outputPrinter = BasicOutputPrinter(), t_ntObs = default,
+            t_initialiser = GaussianIndependantInitialiser(), t_outputPrinter = BasicOutputPrinter(), t_ntObs = default,
             t_filter = StochasticEnKF(), t_obsOp = StochasticIObservations()):
         BasicSimulation.__init__(self, t_Nt, t_integrator, t_initialiser, t_outputPrinter)
         self.setFilterSimulationParameters(t_ntObs, t_filter, t_obsOp)
@@ -57,15 +56,8 @@ class FilterSimulation(BasicSimulation):
 
     def initialise(self):
         BasicSimulation.initialise(self)
-        ###_______________________
-        ### --->>> HACK <<<--- ###
-        ###_______________________
-        self.m_xt           = np.copy(self.m_initialiser.m_mean)
-
         # arrays for tracking
-        self.m_xt_record[0] = self.m_xt
-        self.m_xo_record    = np.zeros((self.m_Nt, self.m_integrator.m_model.m_stateDimension))
-
+        self.m_xo_record = np.zeros((self.m_Nt, self.m_observationOperator.m_spaceDimension))
         # initialise the filter
         self.m_filter.initialise(self.m_initialiser, self.m_Nt)
 
@@ -82,12 +74,12 @@ class FilterSimulation(BasicSimulation):
 
         # apply time step to the truth and record it
         for nt in np.arange(t_ntEnd-t_ntStart) + t_ntStart:
-            self.m_xt              = self.m_integrator.process(self.m_xt, nt)
-            self.m_xt_record[nt+1] = self.m_xt
+            self.m_xt                 = self.m_integrator.process(self.m_xt, nt)
+            self.m_xt_record[nt+1, :] = self.m_xt[:]
 
         # observe the truth at time step t_ntEnd and record it
-        observation               = self.m_observationOperator.process(self.m_xt, t_ntEnd*self.m_integrator.m_dt)
-        self.m_xo_record[t_ntEnd] = observation
+        observation                  = self.m_observationOperator.process(self.m_xt, t_ntEnd)
+        self.m_xo_record[t_ntEnd, :] = observation[:]
 
         # forecast until time step t_ntEnd
         # pententially making use of the observation
@@ -114,14 +106,14 @@ class FilterSimulation(BasicSimulation):
     #_________________________
 
     def observedSteps(self):
-        ###_____________________________
-        ### --->>> TO IMPROVE <<<--- ###
-        ###_____________________________
+        #-------------------
+        # TODO: improve this
+        #-------------------
         return 1.0 * self.m_ntObs
 
     #_________________________
 
-    def recordToFile(self, t_outputDir = './', t_filterPrefix = ''):
+    def recordToFile(self, t_outputDir = './', t_filterPrefix = 'kalman'):
         BasicSimulation.recordToFile(self, t_outputDir)
         self.m_xo_record.tofile(t_outputDir+'xo_record.bin')
         self.observedSteps().tofile(t_outputDir+'nt_obs.bin')
