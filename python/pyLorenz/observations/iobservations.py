@@ -61,7 +61,7 @@ class StochasticIObservations(AbstractStochasticProcess):
 
     def pdf(self, t_observation, t_x, t_t, t_inflation = 1.0):
         # observation pdf in log scale at obs - H(x)
-        return self.m_errorGenerator.pdf(t_observation-self.deterministicProcess(t_x t_t), t_inflation)
+        return self.m_errorGenerator.pdf(t_observation-self.deterministicProcess(t_x, t_t), t_inflation)
 
     #_________________________
 
