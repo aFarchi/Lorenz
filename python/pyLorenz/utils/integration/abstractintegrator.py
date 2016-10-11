@@ -53,7 +53,7 @@ class AbstractIntegrator(object):
         # pdf : - 2 * log ( p ( x[ntStart+1] | x[ntStart] ) )
         p  = - self.m_errorGenerator.pdf(me, t_ntStart)
         for nt in np.arange(r-1):
-            me  = t_x[d*(nt+1):d*(nt+2)] - self.m_deterministicProcess(t_x[d*nt:d*(nt+1)], t_ntStart+nt+1)
+            me  = t_x[d*(nt+1):d*(nt+2)] - self.deterministicProcess(t_x[d*nt:d*(nt+1)], t_ntStart+nt+1)
             p  -= self.m_errorGenerator.pdf(me, t_ntStart+nt+1)
         return p 
 
