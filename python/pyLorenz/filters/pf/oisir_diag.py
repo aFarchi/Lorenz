@@ -49,9 +49,7 @@ class OISIRPF_diag(SIRPF):
 
         # auxiliary variables
         sigma_m = self.m_integrator.errorCovarianceMatrix_diag(t_ntEnd-1)
-        sigma_m = sigma_m * sigma_m
         sigma_o = self.m_observationOperator.errorCovarianceMatrix_diag(t_ntEnd-1, self.m_spaceDimension)
-        sigma_o = sigma_o * sigma_o
         fx      = self.m_integrator.deterministicProcess(self.m_x, t_ntEnd-1)
         H       = self.m_observationOperator.differential_diag(self.m_x, t_ntEnd)
         y       = self.m_observationOperator.castObservationToStateSpace(t_observation, t_ntEnd, self.m_spaceDimension)
@@ -69,12 +67,28 @@ class OISIRPF_diag(SIRPF):
 
         # reweight ensemble to account for proposal
 
-        # p( x[ntEnd] | x[ntEnd-1] )
-        me        = self.m_x - fx
-        self.m_w += self.m_integrator.m_errorGenerator.pdf(me, t_ntEnd-1) # small tweak
+        if self.m_observationOperator.isLinear():
+            # p ( y | x[ntEnd-1] )
+            s         = 1.0 / ( sigma_o + H * sigma_m * H )
+            d         = y - H * fx
+            self.m_w -= ( d * s * d ).sum(axis = -1) / 2.0
 
-        # proposal
-        self.m_w -= proposal.pdf(self.m_x, 0)
+        else:
+            # p( x[ntEnd] | x[ntEnd-1] )
+            me        = self.m_x - fx
+            self.m_w += self.m_integrator.m_errorGenerator.pdf(me, t_ntEnd-1) # small tweak
+
+            # proposal
+            self.m_w -= proposal.pdf(self.m_x, 0)
+
+    #_________________________
+
+    def reweight(self, t_nt, t_observation):
+        if self.m_observationOperator.isLinear():
+            if t_nt == 0:
+                SIRPF.reweight(self, t_nt, t_observation)
+        else:
+            SIRPF.reweight(self, t_nt, t_observation)
 
 #__________________________________________________
 

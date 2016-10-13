@@ -67,6 +67,13 @@ class StochasticXYObservations(StochasticIObservations):
 
     #_________________________
 
+    def errorStdDevMatrix_diag(self, t_t, t_spaceDimension):
+        sigma                         = np.ones(t_spaceDimension) # return 1 instead of 0 for unobserved dimensions to avoid division by zero
+        sigma[:self.m_spaceDimension] = self.m_errorGenerator.stdDevMatrix_diag(t_t)
+        return sigma
+
+    #_________________________
+
     def castObservationToStateSpace(self, t_observation, t_t, t_spaceDimension):
         y                         = np.zeros(t_spaceDimension)
         y[:self.m_spaceDimension] = t_observation

@@ -76,11 +76,16 @@ class IndependantGaussianRNG(object):
     #_________________________
 
     def covarianceMatrix(self, t_t):
-        return np.diag(self.m_sigma)
+        return np.diag(self.square(self.m_sigma))
 
     #_________________________
 
     def covarianceMatrix_diag(self, t_t):
+        return self.square(self.m_sigma)
+
+    #_________________________
+
+    def stdDevMatrix_diag(self, t_t):
         return self.m_sigma
 
 #__________________________________________________

@@ -70,6 +70,11 @@ class StochasticIObservations(AbstractStochasticProcess):
 
     #_________________________
 
+    def errorStdDevMatrix_diag(self, t_t, t_spaceDimension):
+        return self.m_errorGenerator.stdDevMatrix_diag(t_t)
+
+    #_________________________
+
     def castObservationToStateSpace(self, t_observation, t_t, t_spaceDimension):
         return t_observation
 

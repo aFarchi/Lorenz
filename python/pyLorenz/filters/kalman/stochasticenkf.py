@@ -13,35 +13,18 @@
 
 import numpy as np
 
-from ..abstractfilter                   import AbstractFilter
+from abstractenkf                       import AbstractEnKF
 from ...utils.integration.rk4integrator import DeterministicRK4Integrator
 from ...observations.iobservations      import StochasticIObservations
 
 #__________________________________________________
 
-class StochasticEnKF(AbstractFilter):
+class StochasticEnKF(AbstractEnKF):
 
     #_________________________
 
-    def __init__(self, t_integrator = DeterministicRK4Integrator(), t_obsOp = StochasticIObservations(), t_Ns = 10):
-        AbstractFilter.__init__(self, t_integrator, t_obsOp)
-        self.setStochasticEnKFParameters(t_Ns)
-
-    #_________________________
-
-    def setStochasticEnKFParameters(self, t_Ns = 10):
-        self.m_Ns             = t_Ns
-        self.m_spaceDimension = self.m_integrator.m_spaceDimension
-
-    #_________________________
-
-    def initialise(self, t_initialiser, t_Nt):
-        # particles / samples
-        self.m_x              = t_initialiser.initialiseSamples(self.m_Ns)
-        # estimations
-        self.m_estimate       = np.zeros((t_Nt, self.m_spaceDimension))
-        # fill first guess
-        self.m_estimate[0, :] = self.estimate()
+    def __init__(self, t_integrator = DeterministicRK4Integrator(), t_obsOp = StochasticIObservations(), t_Ns = 10, t_covInflation = 1.0):
+        AbstractEnKF.__init__(self, t_integrator, t_obsOp, t_Ns, t_covInflation)
 
     #_________________________
 
@@ -70,27 +53,8 @@ class StochasticEnKF(AbstractFilter):
             # no update if Kalman gain is singular
             pass
 
-        self.m_estimate[t_nt, :] = self.estimate()
-
-    #_________________________
-
-    def forecast(self, t_ntStart, t_ntEnd, t_observation):
-        # integrate particles from ntStart to ntEnd, given the observation at ntEnd
-        # here, EnKF ignores the 'future' observation
-        for nt in t_ntStart + np.arange(t_ntEnd-t_ntStart):
-            self.m_x                 = self.m_integrator.process(self.m_x, nt)
-            self.m_estimate[nt+1, :] = self.estimate()
-
-    #_________________________
-
-    def estimate(self):
-        # mean of x
-        return self.m_x.mean(axis = 0)
-
-    #_________________________
-
-    def recordToFile(self, t_outputDir = './', t_filterPrefix = 'kalman'):
-        self.m_estimate.tofile(t_outputDir+t_filterPrefix+'_estimation.bin')
+        # Estimation and inflation
+        self.m_estimate[t_nt, :] = self.estimateAndInflate()
 
 #__________________________________________________
 
