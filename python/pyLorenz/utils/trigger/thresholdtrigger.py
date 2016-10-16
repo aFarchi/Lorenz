@@ -2,7 +2,7 @@
 
 #__________________________________________________
 # pyLorenz/utils/trigger/
-# thresholdTrigger.py
+# thresholdtrigger.py
 #__________________________________________________
 # author        : colonel
 # last modified : 2016/9/29

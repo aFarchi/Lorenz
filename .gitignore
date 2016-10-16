@@ -4,6 +4,9 @@
 # pyc files
 *.pyc
 
+# For now, just focus on the python version
+c++/
+
 # Build
 build/
 

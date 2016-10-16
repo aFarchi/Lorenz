@@ -5,118 +5,76 @@
 # filtersimulation.py
 #__________________________________________________
 # author        : colonel
-# last modified : 2016/9/21
+# last modified : 2016/10/15
 #__________________________________________________
 #
-# classes to handle a basic simulation of any model
+# classes to handle the simulation of a model
 # with a filtering process
 #
 
 import numpy as np
 
-from basicsimulation                                       import BasicSimulation
-from ..utils.integration.rk4integrator                     import DeterministicRK4Integrator
-from ..utils.initialisation.gaussianindependantinitialiser import GaussianIndependantInitialiser
-from ..utils.output.basicoutputprinter                     import BasicOutputPrinter
-from ..filters.kalman.stochasticenkf                       import StochasticEnKF
-from ..observations.iobservations                          import StochasticIObservations
-
-default = object()
-
+from basicsimulation import BasicSimulation
 #__________________________________________________
 
 class FilterSimulation(BasicSimulation):
 
     #_________________________
 
-    def __init__(self, t_Nt = 1000, t_integrator = DeterministicRK4Integrator(), 
-            t_initialiser = GaussianIndependantInitialiser(), t_outputPrinter = BasicOutputPrinter(), t_ntObs = default,
-            t_filter = StochasticEnKF(), t_obsOp = StochasticIObservations()):
-        BasicSimulation.__init__(self, t_Nt, t_integrator, t_initialiser, t_outputPrinter)
-        self.setFilterSimulationParameters(t_ntObs, t_filter, t_obsOp)
+    def __init__(self, t_integrator, t_initialiser, t_outputPrinter, t_observationTimes, t_filter, t_observationOperator):
+        BasicSimulation.__init__(self, t_integrator, t_initialiser, t_outputPrinter, t_observationTimes, t_observationOperator)
+        self.setFilterSimulationParameters(t_filter)
 
     #_________________________
 
-    def setFilterSimulationParameters(self, t_ntObs = default, t_filter = StochasticEnKF(), t_obsOp = StochasticIObservations()):
-        # set observation times
-        if t_ntObs is default:
-            self.m_ntObs = np.arange(self.m_Nt)
-        else:
-            self.m_ntObs = t_ntObs
-        if not self.m_ntObs[-1] == self.m_Nt - 1: # always observe last time step
-            l = self.m_ntObs.tolist()
-            l.append(self.m_Nt-1)
-            self.m_ntObs = np.array(l)
-        # set filter
-        self.m_filter = t_filter
-        # set observation operator
-        self.m_observationOperator = t_obsOp
+    def setFilterSimulationParameters(self, t_filter):
+        # filter
+        self.m_filter              = t_filter
 
     #_________________________
 
     def initialise(self):
         BasicSimulation.initialise(self)
-        # arrays for tracking
-        self.m_xo_record = np.zeros((self.m_Nt, self.m_observationOperator.m_spaceDimension))
+
+        # size of the integration arrays
+        (sx, sdx)    = self.m_integrator.iArrayMaxSize(self.m_observationTimes)
         # initialise the filter
-        self.m_filter.initialise(self.m_initialiser, self.m_Nt)
+        self.m_filter.initialise(self.m_initialiser, self.m_observationTimes.size, sx, sdx)
 
     #_________________________
 
-    def analyseCycle(self, t_ntStart, t_ntEnd):
-        if t_ntEnd < t_ntStart:
-            return
-        # perform an algorithm step
-        # t_ntStart is the current time step
-        # t_ntEnd is the next time step where a measurement is available
-        if t_ntEnd > t_ntStart:
-            self.m_outputPrinter.printStep(t_ntStart, self)
+    def cycle(self, t_tStart, t_tEnd, t_index):
+        # perform simulation from tStart to tEnd
+        self.m_outputPrinter.printCycle(t_index, self.m_observationTimes.size)
 
-        # apply time step to the truth and record it
-        for nt in np.arange(t_ntEnd-t_ntStart) + t_ntStart:
-            self.m_xt                 = self.m_integrator.process(self.m_xt, nt)
-            self.m_xt_record[nt+1, :] = self.m_xt[:]
+        # aux index variable
+        iEnd = self.m_integrator.indexTEnd(t_tStart, t_tEnd)
 
-        # observe the truth at time step t_ntEnd and record it
-        observation                  = self.m_observationOperator.process(self.m_xt, t_ntEnd)
-        self.m_xo_record[t_ntEnd, :] = observation[:]
+        # integrate truth and record it
+        self.m_integrator.integrate(self.m_xt, t_tStart, t_tEnd, self.m_dxt)
+        self.m_xt_record[t_index] = self.m_xt[iEnd]
 
-        # forecast until time step t_ntEnd
-        # pententially making use of the observation
+        # observe the truth at time tEnd and record it
+        observation               = self.m_observationOperator.observe(self.m_xt[iEnd], t_tEnd)
+        self.m_xo_record[t_index] = observation
+
+        # forecast until ntEnd pententially making use of the observation
         # (e.g. for sampling according to a proposal)
-        if t_ntEnd > t_ntStart:
-            self.m_filter.forecast(t_ntStart, t_ntEnd, observation)
+        self.m_filter.forecast(t_tStart, t_tEnd, observation)
+        self.m_filter.computeForecastPerformance(self.m_xt[iEnd], iEnd, t_index)
 
-        # Analyse observation
-        self.m_filter.analyse(t_ntEnd, observation)
+        # analyse observation
+        self.m_filter.analyse(iEnd, t_tEnd, observation)
+        self.m_filter.computeAnalysePerformance(self.m_xt[iEnd], iEnd, t_index)
 
-    #_________________________
-
-    def run(self):
-        # run function
-        self.m_outputPrinter.printStart(self)
-
-        self.initialise()
-        self.analyseCycle(0, self.m_ntObs[0])
-        for i in np.arange(self.m_ntObs.size-1):
-            self.analyseCycle(self.m_ntObs[i], self.m_ntObs[i+1])
-
-        self.m_outputPrinter.printEnd(self)
+        # permute self.m_xt to prepare next cycle
+        self.m_xt[0] = self.m_xt[iEnd]
+        self.m_filter.permute(iEnd)
 
     #_________________________
 
-    def observedSteps(self):
-        #-------------------
-        # TODO: improve this
-        #-------------------
-        return 1.0 * self.m_ntObs
-
-    #_________________________
-
-    def recordToFile(self, t_outputDir = './', t_filterPrefix = 'kalman'):
+    def recordToFile(self, t_outputDir, t_filterPrefix):
         BasicSimulation.recordToFile(self, t_outputDir)
-        self.m_xo_record.tofile(t_outputDir+'xo_record.bin')
-        self.observedSteps().tofile(t_outputDir+'nt_obs.bin')
         self.m_filter.recordToFile(t_outputDir, t_filterPrefix)
 
 #__________________________________________________

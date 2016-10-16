@@ -2,7 +2,7 @@
 
 #__________________________________________________
 # pyLorenz/utils/random/
-# stochasticuniversalsampler.py
+# stochasticuniversalresampler.py
 #__________________________________________________
 # author        : colonel
 # last modified : 2016/10/9

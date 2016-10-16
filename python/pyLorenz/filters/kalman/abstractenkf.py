@@ -13,64 +13,39 @@
 
 import numpy as np
 
-from ..abstractfilter                   import AbstractFilter
-from ...utils.integration.rk4integrator import DeterministicRK4Integrator
-from ...observations.iobservations      import StochasticIObservations
+from ..abstractensemblefilter import AbstractEnsembleFilter
 
 #__________________________________________________
 
-class AbstractEnKF(AbstractFilter):
+class AbstractEnKF(AbstractEnsembleFilter):
 
     #_________________________
 
-    def __init__(self, t_integrator = DeterministicRK4Integrator(), t_obsOp = StochasticIObservations(), t_Ns = 10, t_covInflation = 1.0):
-        AbstractFilter.__init__(self, t_integrator, t_obsOp)
-        self.setAbstractEnKFParameters(t_Ns, t_covInflation)
+    def __init__(self, t_integrator, t_observationOperator, t_Ns, t_covarianceInflation):
+        AbstractEnsembleFilter.__init__(self, t_integrator, t_observationOperator, t_Ns)
+        self.setAbstractEnKFParameters(t_covarianceInflation)
 
     #_________________________
 
-    def setAbstractEnKFParameters(self, t_Ns = 10, t_covInflation = 1.0):
-        self.m_Ns             = t_Ns
-        self.m_covInflation   = t_covInflation
-        self.m_spaceDimension = self.m_integrator.m_spaceDimension
+    def setAbstractEnKFParameters(self, t_covarianceInflation):
+        # covariance inflation
+        self.m_covarianceInflation = t_covarianceInflation
 
     #_________________________
 
-    def initialise(self, t_initialiser, t_Nt):
-        # particles / samples
-        self.m_x              = t_initialiser.initialiseSamples(self.m_Ns)
-        # estimations
-        self.m_estimate       = np.zeros((t_Nt, self.m_spaceDimension))
-        # fill first guess
-        self.m_estimate[0, :] = self.estimate()
+    def computeAnalysePerformance(self, t_xt, t_iEnd, t_index):
+        # record estimation and compute performance between tStart (excluded) and tEnd (included)
+        # also apply inflation 
+
+        AbstractEnsembleFilter.computeAnalysePerformance(self, t_xt, t_iEnd, t_index)
+        # apply inflation around the ensemble mean
+        self.m_x[t_iEnd] = self.m_estimate[t_index] + self.m_covarianceInflation * ( self.m_x[t_iEnd] - self.m_estimate[t_index] )
 
     #_________________________
 
-    def forecast(self, t_ntStart, t_ntEnd, t_observation):
-        # integrate particles from ntStart to ntEnd, given the observation at ntEnd
-        # here, EnKF ignores the 'future' observation
-        for nt in t_ntStart + np.arange(t_ntEnd-t_ntStart):
-            self.m_x                 = self.m_integrator.process(self.m_x, nt)
-            self.m_estimate[nt+1, :] = self.estimate()
-
-    #_________________________
-
-    def estimate(self):
+    def estimate(self, t_index):
         # mean of x
-        return self.m_x.mean(axis = 0)
-
-    #_________________________
-
-    def recordToFile(self, t_outputDir = './', t_filterPrefix = 'kalman'):
-        self.m_estimate.tofile(t_outputDir+t_filterPrefix+'_estimation.bin')
-
-    #_________________________
-
-    def estimateAndInflate(self):
-        # computes estimation and inflate ensemble around this estimation
-        x_m      = self.estimate()
-        self.m_x = x_m + self.m_covInflation * ( self.m_x - x_m )
-        return x_m
+        return self.m_x[t_index].mean(axis = -2)
 
 #__________________________________________________
 

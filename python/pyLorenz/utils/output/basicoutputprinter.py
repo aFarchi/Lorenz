@@ -45,26 +45,24 @@ class BasicOutputPrinter:
 
     #_________________________
 
-    def printStep(self, t_nt, t_simulation):
-        # print output for step nt of simulation
-        if np.mod(t_nt, self.m_ntMod) == self.m_ntFst:
+    def printCycle(self, t_nCycle, t_NCycles):
+        # print output for cycle nCycle of NCycles
+        if np.mod(t_nCycle, self.m_ntMod) == self.m_ntFst:
             et  = str(tm.time()-self.m_timeStart)
             try:
-                etr = str((tm.time()-self.m_timeStartLoop)*(t_simulation.m_Nt-t_nt)/t_nt)
+                etr = str((tm.time()-self.m_timeStartLoop)*(t_NCycles-t_nCycle)/t_nCycle)
             except:
                 self.m_timeStartLoop = tm.time()
                 etr = '***'
-            print('Running step # '+str(t_nt)+' / '+str(t_simulation.m_Nt)+' *** et = '+et+' *** etr = '+etr)
+            print('Running step # '+str(t_nCycle)+' / '+str(t_NCycles)+' *** et = '+et+' *** etr = '+etr)
 
     #_________________________
 
-    def printEnd(self, t_simulation):
+    def printEnd(self):
         # print output when ending simulation
         et  = str(tm.time()-self.m_timeStart)
-        mt  = str((tm.time()-self.m_timeStartLoop)/t_simulation.m_Nt)
         print('Simulation finished')
         print('Total elapsed time      = '+et)
-        print('Mean time per iteration = '+mt)
 
 #__________________________________________________
 
