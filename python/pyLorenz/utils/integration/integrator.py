@@ -105,6 +105,13 @@ class BasicStochasticIntegrator(DeterministicIntegrator):
         # trick
         t_x[i] += self.m_integrationStep.m_errorGenerator.drawSamples(t_tStart, t_x[i].shape, np.sqrt(dt))
 
+    #_________________________
+
+    def errorCovarianceMatrix_diag(self, t_tStart, t_tEnd):
+        # return the covariance matrix used for the tick
+        dt = t_tEnd - t_tStart
+        return self.m_integrationStep.m_errorGenerator.covarianceMatrix_diag(t_tStart) * dt
+
 #__________________________________________________
 
 """

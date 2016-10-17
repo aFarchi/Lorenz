@@ -5,91 +5,82 @@
 # oisir.py
 #__________________________________________________
 # author        : colonel
-# last modified : 2016/10/9
+# last modified : 2016/9/28
 #__________________________________________________
 #
 # class to handle a SIR particle filter that uses the optimal importance function as proposal
-#
-# TODO : FINISH THIS FILTER !!!!!
 #
 
 import numpy as np
 import numpy.random as rnd
 
-from sir                                          import SIRPF
-from ...utils.integration.rk4integrator           import DeterministicRK4Integrator
-from ...observations.iobservations                import StochasticIObservations
-from ...utils.random.stochasticuniversalresampler import StochasticUniversalResampler
-from ...utils.trigger.thresholdtrigger            import ThresholdTrigger
+from sir import SIRPF
 
 #__________________________________________________
 
-class OISIRPF(SIRPF):
+class OISIRPF_diag(SIRPF):
 
     #_________________________
 
-    def __init__(self, t_integrator = DeterministicRK4Integrator(), t_obsOp = StochasticIObservations(), t_resampler = StochasticUniversalResampler(), 
-            t_observationVarianceInflation = 1.0, t_resamplingTrigger = ThresholdTrigger(0.3), t_Ns = 10):
-        SIRPF.__init__(self, t_integrator, t_obsOp, t_resampler, t_observationVarianceInflation, t_resamplingTrigger, t_Ns)
+    def __init__(self, t_integrator, t_observationOperator, t_Ns, t_resampler, t_resamplingTrigger):
+        SIRPF.__init__(self, t_integrator, t_observationOperator, t_Ns, t_resampler, t_resamplingTrigger)
 
     #_________________________
 
-    def forecast(self, t_ntStart, t_ntEnd, t_observation):
-        # integrate particles from ntStart to ntEnd, given the observation at ntEnd
-        # this includes analyse step for conveniance
+    def forecast(self, t_tStart, t_tEnd, t_observation):
+        # integrate particles from tStart to tEnd, given the observation at tEnd
+        # also reweight ensemble
 
-        for nt in t_ntStart + np.arange(t_ntEnd-t_ntStart-1):
-            self.m_x              = self.m_integrator.process(self.m_x, nt)
-            self.m_estimate[nt+1] = self.estimate()
-
-        self.m_neff[t_ntStart+1:t_ntEnd+1] = self.Neff()
-
-        # for the last integration, we use the optimal importance proposal
+        # number of integration sub-steps
+        iEnd = self.m_integrator.indexTEnd(t_tStart, t_tEnd)
+        if iEnd == 0:
+            return # if no integration, then just return
 
         # auxiliary variables
-        sigma_m     = self.m_integrator.errorCovarianceMatrix(t_ntEnd-1)
-        sigma_o     = self.m_observationOperator.errorCovarianceMatrix(t_ntEnd-1)
-        sigma_m_inv = np.linalg.inv(sigma_m)
-        sigma_o_inv = np.linalg.inv(sigma_o)
-        fx          = self.m_integrator.deterministicProcess(self.m_x, t_ntEnd-1)
-        H           = self.m_observationOperator.differential(self.m_x, t_ntEnd)
+        sigma_m = self.m_integrator.errorCovarianceMatrix_diag(t_tStart, t_tEnd) # note: this line only works for BasicStochasticIntegrator instances
+        sigma_o = self.m_observationOperator.errorCovarianceMatrix_diag(t_tEnd, self.m_spaceDimension)
+        self.m_integrator.deterministicIntegrate(self.m_x, t_tStart, t_tEnd, self.m_dx)
+        fx = np.copy(self.m_x[iEnd]) # copy is necessary since self.m_x[iEnd] will be rewritten when forecasting [see l. 62 and 71]
+        H  = self.m_observationOperator.differential_diag(fx, t_tEnd)
+        y  = self.m_observationOperator.castObservationToStateSpace(t_observation, t_tEnd, self.m_spaceDimension)
 
-        #---------------------------- 
-        # TODO : write this filter...
-        # (like in the diag case...)
-        #---------------------------- 
+        if not self.m_observationOperator.isLinear(): # non linear correction
+            y = H * fx - self.m_observationOperator.deterministicObserve(fx, t_tEnd) + y
 
         # proposal
-        sigma_p     = np.linalg.inv( sigma_m_inv + np.dot( np.transpose(H) , np.dot( sigma_o_inv , H ) ) )
+        sigma_p = 1.0 / ( 1.0 / sigma_m + H * ( 1.0 / sigma_o ) * H )
+        mean_p  = sigma_p * ( ( 1.0 / sigma_m ) * fx + H * ( 1.0 / sigma_o ) * y )
 
-            # S     = np.linalg.inv( sigma_m + np.dot( np.transpose(H) , np.dot( sigma_o , H ) ) )
-            #------------------------------------- 
-            S     = np.linalg.inv( sigma_o + np.dot( H , np.dot( sigma_m , np.transpose(H) ) ) )
+        # draw x at tEnd from proposal
+        self.m_x[iEnd] = mean_p + np.sqrt(sigma_p) * rnd.standard_normal(self.m_x[iEnd].shape)
 
-            for ns in np.arange(self.m_Ns):
-                #--------------------------------------- 
-                # COULD BE VECTORIZED WITH TENSORDOT ???
-                #--------------------------------------- 
-                mean = np.dot( sigma , np.dot ( sigma_m_inv , fx[ns] ) + np.dot ( np.transpose(H) , np.dot ( sigma_o_inv , t_observation ) ) )
+        # reweight ensemble to account for proposal
 
-                # sample from N(mean, sigma)
-                self.m_x[ns] = rnd.multivariate_normal(mean, sigma)
-                # ------------------------------------------------------------------------------
-                # Note that python seem to be bad at sampling from multivariate_normal
-                # e.g. if sigma is diagonal, a better behavior is observed when sampling using :
-                # self.m_x[ns] = rnd.normal(mean, np.diag(sigma))
-                # although there is no theoretical difference
-                # ------------------------------------------------------------------------------
+        if self.m_observationOperator.isLinear():
+            # w *= p ( observation | x[tStart] )
+            s         = 1.0 / ( sigma_o + H * sigma_m * H )
+            d         = y - H * fx
+            self.m_w -= ( d * s * d ).sum(axis = -1) / 2.0
 
-                # correct weight
-                ino = t_observation - np.dot( H , fx[ns] )
-                self.m_w[ns] += - np.dot( ino , np.dot( S , ino ) ) / 2.0 # p(obs|x[nt-1])
+            # w /= p( observation | x[tEnd] )
+            self.m_w -= self.m_observationOperator.pdf(t_observation, self.m_x[iEnd], t_tEnd)
 
-    #_________________________
+        else:
+            # w *= p( x[tEnd] | x[tStart] )
+            # small tweak here since we already performed a deterministic integration of x[tStart] (and stored it in xf)
+            me        = self.m_x[iEnd] - fx
+            self.m_w -= ( me * sigma_m * me ).sum(axis = -1) / 2.0
 
-    def reweight(self, t_nt, t_observation):
-        if t_nt == 0:
-            SIRPF.reweight(self, t_nt, t_observation)
+            # w /= proposal_pdf( x[tEnd] )
+            pe        = self.m_x[iEnd] - mean_p
+            self.m_w += ( pe * sigma_p * pe ).sum(axis = -1) / 2.0
+
+        # Other option:
+        # remove the step : w /= p( observation | x[tEnd] ) in the linear case
+        # add the step    : w *= p( observation | x[tEnd] ) in the non-linear case
+        # and only perform reweight if no forecast was performed yet (i.e. if one wants to perform an analyse at t=0)
+        #
+        # But then one would lose information about forecast performance
 
 #__________________________________________________
 
