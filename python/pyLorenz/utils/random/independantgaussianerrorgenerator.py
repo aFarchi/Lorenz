@@ -63,7 +63,7 @@ class IndependantGaussianErrorGenerator(object):
     def pdf(self, t_x, t_t, t_inflation = 1.0):
         # return the pdf in log scale at time t taken at point x
         # note: the standard deviation of the error is inflated by a factor inflation
-        return - self.square( t_x / ( t_inflation * self.m_stdDev ) ) . sum(axis = -1) / 2.0
+        return - 0.5 * self.square( t_x / ( t_inflation * self.m_stdDev ) ) . sum(axis = -1)
 
     #_________________________
 

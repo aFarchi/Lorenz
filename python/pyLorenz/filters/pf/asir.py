@@ -27,7 +27,7 @@ class ASIRPF(SIRPF):
     #_________________________
 
     def forecast(self, t_tStart, t_tEnd, t_observation):
-        # integrate particles from ntStart to ntEnd, given the observation at ntEnd
+        # integrate particles from tStart to tEnd
 
         # number of integration sub-steps
         iEnd = self.m_integrator.indexTEnd(t_tStart, t_tEnd)

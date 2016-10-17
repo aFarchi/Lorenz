@@ -108,9 +108,16 @@ class BasicStochasticIntegrator(DeterministicIntegrator):
     #_________________________
 
     def errorCovarianceMatrix_diag(self, t_tStart, t_tEnd):
-        # return the covariance matrix used for the tick
+        # return the covariance matrix used for the trick
         dt = t_tEnd - t_tStart
         return self.m_integrationStep.m_errorGenerator.covarianceMatrix_diag(t_tStart) * dt
+
+    #_________________________
+
+    def errorPDF(self, t_error, t_tStart, t_tEnd):
+        # computes the pdf of the trick
+        dt = t_tEnd - t_tStart
+        return self.m_integrationStep.m_errorGenerator.pdf(t_error, t_tStart, np.sqrt(dt))
 
 #__________________________________________________
 
