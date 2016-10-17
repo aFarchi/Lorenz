@@ -5,7 +5,7 @@
 # oisir.py
 #__________________________________________________
 # author        : colonel
-# last modified : 2016/9/28
+# last modified : 2016/10/17
 #__________________________________________________
 #
 # class to handle a SIR particle filter that uses the optimal importance function as proposal
@@ -29,7 +29,6 @@ class OISIRPF_diag(SIRPF):
 
     def forecast(self, t_tStart, t_tEnd, t_observation):
         # integrate particles from tStart to tEnd, given the observation at tEnd
-        # also reweight ensemble
 
         # number of integration sub-steps
         iEnd = self.m_integrator.indexTEnd(t_tStart, t_tEnd)
