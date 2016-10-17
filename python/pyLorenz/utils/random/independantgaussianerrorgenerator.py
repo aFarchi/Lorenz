@@ -73,6 +73,12 @@ class IndependantGaussianErrorGenerator(object):
 
     #_________________________
 
+    def stdDevMatrix_inv(self, t_t):
+        # return the inverse of the standard deviation matrix at time t
+        return np.diag( 1.0 / self.m_stdDev )
+
+    #_________________________
+
     def covarianceMatrix_diag(self, t_t):
         # return the diagonal of the covariance matrix at time t
         return self.m_sigma

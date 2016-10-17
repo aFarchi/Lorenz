@@ -17,7 +17,7 @@ from abstractenkf import AbstractEnKF
 
 #__________________________________________________
 
-class EnTKF_diag(AbstractEnKF):
+class EnTKF(AbstractEnKF):
 
     #_________________________
 
@@ -28,6 +28,7 @@ class EnTKF_diag(AbstractEnKF):
     #_________________________
 
     def setEnTKFParameters(self, t_U):
+        # U
         if t_U is None:
             self.m_U = np.eye(self.m_Ns)
         else:
@@ -51,10 +52,10 @@ class EnTKF_diag(AbstractEnKF):
         Yf    = ( Hxf - Hxf_m ) / np.sqrt( self.m_Ns - 1.0 )
 
         # Analyse
-        rsigma_o = self.m_observationOperator.errorStdDevMatrix_diag(t_t, self.m_spaceDimension)
+        rsom1    = self.m_observationOperator.errorStdDevMatrix_inv(t_t)
 
-        S        = Yf / rsigma_o
-        delta    = ( t_observation - Hxf_m ) / rsigma_o
+        S        = np.dot ( Yf , rsom1 )
+        delta    = np.dot ( rsom1 , t_observation - Hxf_m )
 
         Tm1      = np.eye(self.m_Ns) + np.dot( S , np.transpose(S) )
         U, s, V  = np.linalg.svd(Tm1) # T^-1 = U * s * V, T = tV / s * tU

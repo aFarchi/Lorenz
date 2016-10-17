@@ -74,6 +74,12 @@ class AbstractObservationOperator(object):
 
     #_________________________
 
+    def errorStdDevMatrix_inv(self, t_t):
+        # return the inverse of the standard deviation matrix
+        return self.m_errorGenerator.stdDevMatrix_inv(t_t)
+
+    #_________________________
+
     def errorCovarianceMatrix_diag(self, t_t, t_spaceDimension):
         # return the diagonal of the covariance matrix
         # which is then casted in state space (whose dimension is t_spaceDimension)
