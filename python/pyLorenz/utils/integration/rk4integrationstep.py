@@ -17,7 +17,7 @@ from abstractintegrationstep import AbstractIntegrationStep
 
 #__________________________________________________
 
-class RK4InterationStep(AbstractIntegrationStep):
+class RK4IntegrationStep(AbstractIntegrationStep):
 
     #_________________________
 

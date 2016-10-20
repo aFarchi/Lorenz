@@ -5,7 +5,7 @@
 # stochasticenkf.py
 #__________________________________________________
 # author        : colonel
-# last modified : 2016/10/9
+# last modified : 2016/10/20
 #__________________________________________________
 #
 # class to handle a stochastic EnKF
@@ -39,7 +39,7 @@ class StochasticEnKF(AbstractEnKF):
         # Ensemble means
         xf_m  = xf.mean(axis = 0)
         oe_m  = oe.mean(axis = 0)
-        Hxf   = self.m_observationOperator.observe(xf, t_t)
+        Hxf   = self.m_observationOperator.deterministicObserve(xf, t_t)
         Hxf_m = Hxf.mean(axis = 0)
 
         # Normalized anomalies
@@ -47,9 +47,10 @@ class StochasticEnKF(AbstractEnKF):
         Yf    = ( Hxf - Hxf_m - oe + oe_m ) / np.sqrt( self.m_Ns - 1.0 )
 
         # Kalman gain
-        K   = np.dot ( np.linalg.inv ( np.dot ( np.transpose ( Yf ) , Yf ) ) , np.dot ( np.transpose ( Yf ) , Xf ) )
+        K     = np.dot ( np.linalg.pinv ( np.dot ( np.transpose ( Yf ) , Yf ) ) , np.dot ( np.transpose ( Yf ) , Xf ) )
+
         # Update
-        xf += np.dot ( t_observation + oe - Hxf , K )
+        xf   += np.dot ( t_observation + oe - Hxf , K )
 
 #__________________________________________________
 

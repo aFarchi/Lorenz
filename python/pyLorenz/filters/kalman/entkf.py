@@ -5,7 +5,7 @@
 # entkf.py
 #__________________________________________________
 # author        : colonel
-# last modified : 2016/10/15
+# last modified : 2016/10/20
 #__________________________________________________
 #
 # class to handle an ensemble transform kalman filter
@@ -44,7 +44,7 @@ class EnTKF(AbstractEnKF):
 
         # Ensemble means
         xf_m  = xf.mean(axis = 0)
-        Hxf   = self.m_observationOperator.observe(xf, t_t)
+        Hxf   = self.m_observationOperator.deterministicObserve(xf, t_t)
         Hxf_m = Hxf.mean(axis = 0)
 
         # Normalized anomalies
@@ -52,13 +52,13 @@ class EnTKF(AbstractEnKF):
         Yf    = ( Hxf - Hxf_m ) / np.sqrt( self.m_Ns - 1.0 )
 
         # Analyse
-        rsom1    = self.m_observationOperator.errorStdDevMatrix_inv(t_t)
+        Rm1_2    = self.m_observationOperator.errorStdDevMatrix_inv(t_t)
 
-        S        = np.dot ( Yf , rsom1 )
-        delta    = np.dot ( rsom1 , t_observation - Hxf_m )
+        S        = np.dot ( Yf , Rm1_2 )
+        delta    = np.dot ( Rm1_2 , t_observation - Hxf_m )
 
         Tm1      = np.eye(self.m_Ns) + np.dot( S , np.transpose(S) )
-        U, s, V  = np.linalg.svd(Tm1) # T^-1 = U * s * V, T = tV / s * tU
+        U, s, V  = np.linalg.svd(Tm1) # T^-1 = ( U * s ) * V, T = ( tV / s ) * tU
 
         # w = T * S * delta 
         w = np.dot ( np.dot ( np.transpose(V) / s , np.transpose(U) ) , np.dot ( S , delta ) )
