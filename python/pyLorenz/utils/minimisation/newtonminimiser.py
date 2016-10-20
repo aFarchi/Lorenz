@@ -19,12 +19,12 @@ class NewtonMinimiser(object):
 
     #_________________________
 
-    def __init__(self, t_dx = 1.0e-5, t_maxIt = 100, t_tolerance = 1.0e-8):
+    def __init__(self, t_dx, t_maxIt, t_tolerance):
         self.setNewtonMinimiserParameters(t_dx, t_maxIt, t_tolerance)
 
     #_________________________
 
-    def setNewtonMinimiserParameters(self, t_dx = 0.001, t_maxIt = 100, t_tolerance = 1.0e-8):
+    def setNewtonMinimiserParameters(self, t_dx, t_maxIt, t_tolerance):
         # differential step
         self.m_dx        = t_dx
         # maximum number of iterations
@@ -35,7 +35,7 @@ class NewtonMinimiser(object):
     #_________________________
 
     def computeGradient(self, t_f, t_x):
-        # compute gradient of t_f at point t_x
+        # compute gradient of f at point x
 
         df = np.zeros(t_x.size)
 
@@ -59,7 +59,7 @@ class NewtonMinimiser(object):
     #_________________________
 
     def computeHessian(self, t_f, t_x):
-        # compute hessian of t_f at point t_x
+        # compute hessian of f at point x
 
         ddf = np.zeros((t_x.size, t_x.size))
 
@@ -134,13 +134,13 @@ class NewtonMinimiser(object):
     #_________________________
 
     def minimise(self, t_f, t_x):
+        # minimise f : R^n -> R, with first guess x
         return self.recMinimise(t_f, t_x, 1)
 
     #_________________________
 
     def recFindLevel(self, t_f, t_level, t_x, t_nIt):
-        # solve t_f(t_x) = t_level
-        # assuming that t_x is a scalar
+        # optimisation step according to Newton's method
 
         if t_nIt > self.m_maxIt:
             print('too much iterations')
@@ -159,7 +159,16 @@ class NewtonMinimiser(object):
     #_________________________
 
     def findLevel(self, t_f, t_level, t_x):
+        # solve scalar equation f(x) = level, with first guess x
         return self.recFindLevel(t_f, t_level, t_x, 1)
+
+    #_________________________
+
+    def minimiseInterval(self, t_f, t_x1, t_x3, t_x):
+        # minimise the scalar function f over interval [x1, x3], with the first guess x 
+        x = np.array([t_x])
+        (xm, h, nit) = self.minimise(t_f, x)
+        return (xm[0], nit)
 
 #__________________________________________________
 
