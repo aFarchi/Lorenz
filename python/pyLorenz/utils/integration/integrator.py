@@ -69,6 +69,13 @@ class DeterministicIntegrator(object):
         # return index of x at time tEnd for an array containing x that have been integrated from tStart to tEnd
         return np.rint( ( t_tEnd - t_tStart ) / self.m_dt ).astype(int) * self.m_nIntSStep
 
+    #_________________________
+
+    def basicStochasticIntegrator(self):
+        # constructs a basic stochastic integrator that has the same integration step
+        # you may then want to change the error generator of the integration step
+        return BasicStochasticIntegrator(self.m_integrationStep)
+
 #__________________________________________________
 
 class StochasticIntegrator(DeterministicIntegrator):

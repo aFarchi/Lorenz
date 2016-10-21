@@ -49,7 +49,7 @@ from filters.pf.amsir                                import AMSIRPF
 
 #__________________________________________________
 
-def standardLorenz63DeterministicSimulation(t_observation_Dt, t_observation_Nt, t_observation_variance):
+def standardLorenz63DeterministicSimulation(t_observation_Dt, t_observation_Nt, t_observation_variance, t_optionalIntegrationError_variance = None):
     # build a simulation object for a standard Lorenz 63 simulation with no model error
 
     # Standard Lorenz 63 Model
@@ -59,9 +59,14 @@ def standardLorenz63DeterministicSimulation(t_observation_Dt, t_observation_Nt, 
     model       = Lorenz63Model(model_sigma, model_beta, model_rho)
 
     # Integrator without model error
-    integrator_dt   = 0.01
-    integrator_step = RK4IntegrationStep(integrator_dt, model)
-    integrator      = DeterministicIntegrator(integrator_step)
+    integrator_dt      = 0.01
+    if t_optionalIntegrationError_variance is not None:
+        integrator_std = np.sqrt( t_optionalIntegrationError_variance ) * np.ones(3)
+        integrator_eg  = IndependantGaussianErrorGenerator(integrator_std)
+    else:
+        integrator_eg  = None
+    integrator_step    = RK4IntegrationStep(integrator_dt, model, integrator_eg)
+    integrator         = DeterministicIntegrator(integrator_step)
 
     # Initialiser
     initialiser_truth = np.array([-5.91652, -5.52332, 24.5723])
@@ -101,6 +106,16 @@ def standardMinimisers():
     gss           = GoldenSectionMinimiser(gss_maxIt, gss_tolerance)
 
     return [newton, gss]
+
+#__________________________________________________
+
+def standardResamplers():
+    # build standard resampler objects
+
+    direct = DirectResampler()
+    sus    = StochasticUniversalResampler()
+
+    return [direct, sus]
 
 #__________________________________________________
 

@@ -22,27 +22,24 @@ class EnTKF_N(AbstractEnKF):
 
     #_________________________
 
-    def __init__(self, t_integrator, t_observationOperator, t_Ns, t_covarianceInflation, t_minimiser, t_epsilon = None, t_U = None):
+    def __init__(self, t_integrator, t_observationOperator, t_Ns, t_covarianceInflation, t_minimiser, t_epsilon, t_maxZeta, t_U = None):
         AbstractEnKF.__init__(self, t_integrator, t_observationOperator, t_Ns, t_covarianceInflation)
-        self.setEnTKF_NParameters(t_minimiser, t_epsilon, t_U)
+        self.setEnTKF_NParameters(t_minimiser, t_epsilon, t_maxZeta, t_U)
 
     #_________________________
 
-    def setEnTKF_NParameters(self, t_minimiser, t_epsilon, t_U):
+    def setEnTKF_NParameters(self, t_minimiser, t_epsilon, t_maxZeta, t_U):
         # minimiser
-        self.m_minimiser   = t_minimiser
+        self.m_minimiser = t_minimiser
         # epsilon
-        if t_epsilon is None:
-            self.m_epsilon = self.m_Ns / ( self.m_Ns - 1.0 )
-        else:
-            self.m_epsilon = t_epsilon
+        self.m_epsilon   = t_epsilon
         # max value for zeta
-        self.m_maxZeta     = ( self.m_Ns + 1.0 ) / self.m_epsilon #### CHECK
+        self.m_maxZeta   = t_maxZeta
         # U
         if t_U is None:
-            self.m_U       = np.eye(self.m_Ns)
+            self.m_U     = np.eye(self.m_Ns)
         else:
-            self.m_U       = t_U
+            self.m_U     = t_U
 
     #_________________________
 
@@ -118,6 +115,12 @@ class EnTKF_N(AbstractEnKF):
             #self.m_dualCost = dualCost2
             #print 'too much inflation'
             #raise Exception
+        """
+        if zetaa > self.m_Ns - 1.0:
+            print 'deflation is used !!', zetaa
+        else:
+            print zetaa
+        """
 
 
         # analyse weights
