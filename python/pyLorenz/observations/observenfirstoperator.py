@@ -30,9 +30,9 @@ class ObserveNFirstOperator(AbstractObservationOperator):
 
     #_________________________
 
-    def deterministicObserve(self, t_x, t_t):
+    def deterministicObserve(self, t_x, t_t, t_y):
         # observe the self.m_spaceDimension first dimensions with the identity operator
-        return t_x[..., :self.m_spaceDimension]
+        t_y[:] = t_x[..., :self.m_spaceDimension]
 
     #_________________________
 

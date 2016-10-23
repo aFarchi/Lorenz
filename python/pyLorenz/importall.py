@@ -5,7 +5,7 @@
 # importall.py
 #__________________________________________________
 # author        : colonel
-# last modified : 2016/10/18
+# last modified : 2016/10/23
 #__________________________________________________
 #
 # define all the packages to import
@@ -24,9 +24,11 @@ from utils.integration.integrator                    import DeterministicIntegra
 
 from utils.initialisation.randominitialiser          import RandomInitialiser
 
-from utils.output.basicoutputprinter                 import BasicOutputPrinter
+from utils.output.defaultouput                       import DefaultOutput
+from utils.output.onlyrmseoutput                     import OnlyRMSEOutput
 
 from utils.trigger.thresholdtrigger                  import ThresholdTrigger
+from utils.trigger.modulustrigger                    import ModulusTrigger
 
 from utils.minimisation.newtonminimiser              import NewtonMinimiser
 from utils.minimisation.goldensectionsearchminimiser import GoldenSectionMinimiser
@@ -35,11 +37,11 @@ from model.lorenz63                                  import Lorenz63Model
 
 from observations.observealloperator                 import ObserveAllOperator
 
-from simulation.multifiltersimulation                import MultiFilterSimulation
+from simulation.simulation                           import Simulation
 
 from filters.kalman.stochasticenkf                   import StochasticEnKF
 from filters.kalman.entkf                            import EnTKF
-from filters.kalman.entkfn                           import EnTKF_N
+from filters.kalman.entkfn                           import EnTKF_N_dual
 
 from filters.pf.sir                                  import SIRPF
 from filters.pf.oisir                                import OISIRPF_diag
@@ -49,8 +51,21 @@ from filters.pf.amsir                                import AMSIRPF
 
 #__________________________________________________
 
-def standardLorenz63DeterministicSimulation(t_observation_Dt, t_observation_Nt, t_observation_variance, t_optionalIntegrationError_variance = None):
+def standardOutput(t_outputDir, t_Nt):
+    # build a standard output object
+    trigger = ModulusTrigger(500, 0)
+    return OnlyRMSEOutput(trigger, t_outputDir, t_Nt/2)
+
+#__________________________________________________
+
+def standardLorenz63DeterministicSimulation(t_outputDir, t_observation_Dt, t_observation_Nt, t_observation_variance, t_integrationJitter_variance = None):
     # build a simulation object for a standard Lorenz 63 simulation with no model error
+
+    # Initialiser
+    initialiser_truth = np.array([-5.91652, -5.52332, 24.5723])
+    initialiser_std   = np.sqrt( 1.0 ) * np.ones(3)
+    initialiser_eg    = IndependantGaussianErrorGenerator(initialiser_std)
+    initialiser       = RandomInitialiser(initialiser_truth, initialiser_eg)
 
     # Standard Lorenz 63 Model
     model_sigma = 10.0
@@ -60,24 +75,13 @@ def standardLorenz63DeterministicSimulation(t_observation_Dt, t_observation_Nt, 
 
     # Integrator without model error
     integrator_dt      = 0.01
-    if t_optionalIntegrationError_variance is not None:
-        integrator_std = np.sqrt( t_optionalIntegrationError_variance ) * np.ones(3)
+    if t_integrationJitter_variance is not None:
+        integrator_std = np.sqrt( t_integrationJitter_variance ) * np.ones(3)
         integrator_eg  = IndependantGaussianErrorGenerator(integrator_std)
     else:
         integrator_eg  = None
     integrator_step    = RK4IntegrationStep(integrator_dt, model, integrator_eg)
     integrator         = DeterministicIntegrator(integrator_step)
-
-    # Initialiser
-    initialiser_truth = np.array([-5.91652, -5.52332, 24.5723])
-    initialiser_std   = np.sqrt( 1.0 ) * np.ones(3)
-    initialiser_eg    = IndependantGaussianErrorGenerator(initialiser_std)
-    initialiser       = RandomInitialiser(initialiser_truth, initialiser_eg)
-
-    # Output
-    output_ntMod = min(max(t_observation_Nt/100, 500), 5000)
-    output_ntFst = 0
-    output       = BasicOutputPrinter(output_ntMod, output_ntFst)
 
     # Observation operator
     observation_std = np.sqrt(t_observation_variance) * np.ones(3)
@@ -87,7 +91,10 @@ def standardLorenz63DeterministicSimulation(t_observation_Dt, t_observation_Nt, 
     # Observation times
     observationTimes = np.arange(t_observation_Nt) * t_observation_Dt
 
-    return MultiFilterSimulation(integrator, initialiser, output, observationTimes, observation)
+    # Output
+    output = standardOutput(t_outputDir, t_observation_Nt)
+
+    return Simulation(initialiser, integrator, observation, observationTimes, output)
 
 #__________________________________________________
 

@@ -21,8 +21,8 @@ class MSIRPF(SIRPF):
 
     #_________________________
 
-    def __init__(self, t_integrator, t_observationOperator, t_Ns, t_resampler, t_resamplingTrigger, t_iSampler):
-        SIRPF.__init__(self, t_integrator, t_observationOperator, t_Ns, t_resampler, t_resamplingTrigger)
+    def __init__(self, t_label, t_integrator, t_observationOperator, t_Ns, t_resampler, t_resamplingTrigger, t_iSampler):
+        SIRPF.__init__(self, t_label, t_integrator, t_observationOperator, t_Ns, t_resampler, t_resamplingTrigger)
         self.setMSIRPFParameters(t_iSampler)
 
     #_________________________

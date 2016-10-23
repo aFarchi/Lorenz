@@ -67,6 +67,18 @@ class IndependantGaussianErrorGenerator(object):
 
     #_________________________
 
+    def applyLeftStdDevMatrix_inv(self, t_x):
+        # return stdDev^(-1) . x
+        return np.transpose( np.transpose(t_x) / self.m_stdDev )
+
+    #_________________________
+        
+    def applyRightStdDevMatrix_inv(self, t_x):
+        # return x . stdDev^(-1)
+        return t_x / self.m_stdDev
+
+    #_________________________
+
     def covarianceMatrix(self, t_t):
         # return the covariance matrix of the error at time t
         return np.diag(self.m_sigma)

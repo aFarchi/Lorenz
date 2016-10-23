@@ -19,12 +19,14 @@ class AbstractEnsembleFilter(object):
 
     #_________________________
 
-    def __init__(self, t_integrator, t_observationOperator, t_Ns):
-        self.setAbstractEnsembleFilterParameters(t_integrator, t_observationOperator, t_Ns)
+    def __init__(self, t_label, t_integrator, t_observationOperator, t_Ns):
+        self.setAbstractEnsembleFilterParameters(t_label, t_integrator, t_observationOperator, t_Ns)
 
     #_________________________
 
-    def setAbstractEnsembleFilterParameters(self, t_integrator, t_observationOperator, t_Ns):
+    def setAbstractEnsembleFilterParameters(self, t_label, t_integrator, t_observationOperator, t_Ns):
+        # filter label
+        self.m_label               = t_label
         # integrator
         self.m_integrator          = t_integrator
         # observation operator
@@ -36,16 +38,17 @@ class AbstractEnsembleFilter(object):
 
     #_________________________
 
-    def initialise(self, t_initialiser, t_Nt, t_sizeX, t_sizeDX):
+    def initialise(self, t_initialiser, t_sizeX, t_sizeDX):
+        # samples arrays
+        self.m_x          = np.zeros((t_sizeX, self.m_Ns, self.m_spaceDimension))
+        # temporary array
+        self.m_dx         = np.zeros((t_sizeDX, self.m_Ns, self.m_spaceDimension))
+        # estimate
+        self.m_estimation = np.zeros(self.m_spaceDimension)
+        # rmse
+        self.m_rmse       = 0.0
         # initialise samples
-        self.m_x           = t_initialiser.initialiseSamples((t_sizeX, self.m_Ns, self.m_spaceDimension))
-        self.m_dx          = np.zeros((t_sizeDX, self.m_Ns, self.m_spaceDimension))
-        #--------------------------------------------------------------
-        # Array for estimation (if there is enough memory to afford it)
-        #--------------------------------------------------------------
-        self.m_rmseA       = np.zeros(t_Nt)
-        self.m_rmseF       = np.zeros(t_Nt)
-        self.m_estimate    = np.zeros((t_Nt, self.m_spaceDimension))
+        t_initialiser.initialiseSamples(self.m_x[0])
 
     #_________________________
 
@@ -67,23 +70,23 @@ class AbstractEnsembleFilter(object):
 
     #_________________________
 
-    def computeForecastPerformance(self, t_xt, t_iEnd, t_index):
-        # compute performance of the forecast from tStart to tEnd
+    def computePerformance(self, t_xt, t_iEnd):
+        # compute performance
 
         # estimate the mean
-        estimate              = self.estimate(t_iEnd)
+        self.m_estimation = self.estimate(t_iEnd)
         # compare to the truth
-        self.m_rmseF[t_index] = self.rms( estimate - t_xt )
+        self.m_rmse       = self.rms(self.m_estimation-t_xt)
 
     #_________________________
 
-    def computeAnalysePerformance(self, t_xt, t_iEnd, t_index):
-        # record estimation and compute performance between tStart (excluded) and tEnd (included)
+    def computeForecastPerformance(self, t_xt, t_iEnd):
+        self.computePerformance(t_xt, t_iEnd)
 
-        # estimate the mean
-        self.m_estimate[t_index] = self.estimate(t_iEnd)
-        # compare to the truth
-        self.m_rmseA[t_index]    = self.rms( self.m_estimate[t_index] - t_xt )
+    #_________________________
+
+    def computeAnalysePerformance(self, t_xt, t_iEnd):
+        self.computePerformance(t_xt, t_iEnd)
 
     #_________________________
 
@@ -99,10 +102,23 @@ class AbstractEnsembleFilter(object):
 
     #_________________________
 
-    def recordToFile(self, t_outputDir, t_filterPrefix):
-        self.m_rmseA.tofile(t_outputDir+t_filterPrefix+'_rmseA.bin')
-        self.m_rmseF.tofile(t_outputDir+t_filterPrefix+'_rmseF.bin')
-        self.m_estimate.tofile(t_outputDir+t_filterPrefix+'_estimation.bin')
+    def writeForecast(self, t_output, t_iEnd):
+        # estimation
+        t_output.writeFilterForecast(self.m_label, self.m_estimation)
+        # rmse
+        t_output.writeFilterForecastRMSE(self.m_label, self.m_rmse)
+        # ensemble
+        t_output.writeFilterForecastEnsemble(self.m_label, self.m_x[t_iEnd])
+
+    #_________________________
+
+    def writeAnalyse(self, t_output, t_iEnd):
+        # estimation
+        t_output.writeFilterAnalyse(self.m_label, self.m_estimation)
+        # rmse
+        t_output.writeFilterAnalyseRMSE(self.m_label, self.m_rmse)
+        # ensemble
+        t_output.writeFilterAnalyseEnsemble(self.m_label, self.m_x[t_iEnd])
 
 #__________________________________________________
 

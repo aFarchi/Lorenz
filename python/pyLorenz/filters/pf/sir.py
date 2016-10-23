@@ -21,10 +21,10 @@ class SIRPF(AbstractEnsembleFilter):
 
     #_________________________
 
-    def __init__(self, t_integrator, t_observationOperator, t_Ns, t_resampler, t_resamplingTrigger):
-        AbstractEnsembleFilter.__init__(self, t_integrator, t_observationOperator, t_Ns)
+    def __init__(self, t_label, t_integrator, t_observationOperator, t_Ns, t_resampler, t_resamplingTrigger):
+        AbstractEnsembleFilter.__init__(self, t_label, t_integrator, t_observationOperator, t_Ns)
         self.setSIRPFParameters(t_resampler, t_resamplingTrigger)
-        self.m_resampled = []
+        self.setSIRPFTemporaryArrays()
 
     #_________________________
 
@@ -36,38 +36,34 @@ class SIRPF(AbstractEnsembleFilter):
 
     #_________________________
 
-    def initialise(self, t_initialiser, t_Nt, t_sizeX, t_sizeDX):
-        AbstractEnsembleFilter.initialise(self, t_initialiser, t_Nt, t_sizeX, t_sizeDX)
+    def setSIRPFTemporaryArrays(self):
+        # allocate temporary arrays
+        self.m_Hx = np.zeros((self.m_Ns, self.m_observationOperator.m_spaceDimension))
 
+    #_________________________
+
+    def initialise(self, t_initialiser, t_sizeX, t_sizeDX):
+        AbstractEnsembleFilter.initialise(self, t_initialiser, t_sizeX, t_sizeDX)
         # relative weights in ln scale
-        self.m_w = - np.log(self.m_Ns) * np.ones(self.m_Ns)
-
-        #--------------------------------------------------------------
-        # Array for estimation (if there is enough memory to afford it)
-        #--------------------------------------------------------------
-        self.m_NeffF = np.ones(t_Nt)
-        self.m_NeffA = np.ones(t_Nt)
+        self.m_w         = - np.log(self.m_Ns) * np.ones(self.m_Ns)
+        # Neff
+        self.m_Neff      = 1.0
+        # Resampled
+        self.m_resampled = False
 
     #_________________________
 
     def Neff(self):
         # empirical effective relative sample size
         # Neff = 1 / sum ( w_i ^ 2 ) / Ns
-        return 1.0 / ( np.exp(2.0*self.m_w).sum() * self.m_Ns )
-
-    #_________________________
-
-    def resampledTimes(self):
-        #-------------------
-        # TODO: improve this
-        #-------------------
-        return np.array(self.m_resampled)
+        self.m_Neff = 1.0 / ( np.exp(2.0*self.m_w).sum() * self.m_Ns )
 
     #_________________________
 
     def reweight(self, t_index, t_t, t_observation):
         # first step of analyse : reweight ensemble according to observation weights
-        self.m_w += self.m_observationOperator.pdf(t_observation, self.m_x[t_index], t_t)
+        self.m_observationOperator.deterministicObserve(self.m_x[t_index], t_t, self.m_Hx)
+        self.m_w += self.m_observationOperator.pdf(t_observation, self.m_Hx, t_t)
 
     #_________________________
 
@@ -81,13 +77,11 @@ class SIRPF(AbstractEnsembleFilter):
 
     def resample(self, t_index, t_t):
         # third step of analyse : resample
-        if self.m_resamplingTrigger.trigger(self.Neff(), t_t):
-            #-----------------------------------
-            # print('resampling, t = '+str(t_t))
-            #-----------------------------------
+        self.Neff()
+        self.m_resampled = self.m_resamplingTrigger.trigger(self.m_Neff, t_t)
+        if self.m_resampled:
             (self.m_w, self.m_x[t_index]) = self.m_resampler.sample(self.m_Ns, self.m_w, self.m_x[t_index])
-            # keep record of resampled times
-            self.m_resampled.append(t_t)
+            self.Neff()
 
     #_________________________
 
@@ -99,31 +93,22 @@ class SIRPF(AbstractEnsembleFilter):
 
     #_________________________
 
-    def computeForecastPerformance(self, t_xt, t_iEnd, t_index):
-        # performance of the forecast
-        AbstractEnsembleFilter.computeForecastPerformance(self, t_xt, t_iEnd, t_index)
-        self.m_NeffF[t_index] = self.Neff()
-
-    #_________________________
-
-    def computeAnalysePerformance(self, t_xt, t_iEnd, t_index):
-        # performance of the analyse
-        AbstractEnsembleFilter.computeAnalysePerformance(self, t_xt, t_iEnd, t_index)
-        self.m_NeffA[t_index] = self.Neff()
-
-    #_________________________
-
     def estimate(self, t_index):
         # mean of x
         return np.average(self.m_x[t_index], axis = -2, weights = np.exp(self.m_w))
 
     #_________________________
 
-    def recordToFile(self, t_outputDir, t_filterPrefix):
-        AbstractEnsembleFilter.recordToFile(self, t_outputDir, t_filterPrefix)
-        self.m_NeffF.tofile(t_outputDir+t_filterPrefix+'_NeffF.bin')
-        self.m_NeffA.tofile(t_outputDir+t_filterPrefix+'_NeffA.bin')
-        self.resampledTimes().tofile(t_outputDir+t_filterPrefix+'_resampledTimes.bin')
+    def writeForecast(self, t_output, t_iEnd):
+        AbstractEnsembleFilter.writeForecast(self, t_output, t_iEnd)
+        t_output.writeFilterForecastNeff(self.m_label, self.m_Neff)
+
+    #_________________________
+
+    def writeAnalyse(self, t_output, t_iEnd):
+        AbstractEnsembleFilter.writeAnalyse(self, t_output, t_iEnd)
+        t_output.writeFilterAnalyseNeff(self.m_label, self.m_Neff)
+        t_output.writeFilterAnalyseResampled(self.m_label, self.m_resampled)
 
 #__________________________________________________
 

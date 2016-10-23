@@ -26,9 +26,9 @@ class ObserveAllOperator(AbstractObservationOperator):
 
     #_________________________
 
-    def deterministicObserve(self, t_x, t_t):
+    def deterministicObserve(self, t_x, t_t, t_y):
         # observe everything with the identity operator
-        return t_x
+        t_y[:] = t_x[:]
 
     #_________________________
 

@@ -21,9 +21,10 @@ class AbstractEnKF(AbstractEnsembleFilter):
 
     #_________________________
 
-    def __init__(self, t_integrator, t_observationOperator, t_Ns, t_covarianceInflation):
-        AbstractEnsembleFilter.__init__(self, t_integrator, t_observationOperator, t_Ns)
+    def __init__(self, t_label, t_integrator, t_observationOperator, t_Ns, t_covarianceInflation):
+        AbstractEnsembleFilter.__init__(self, t_label, t_integrator, t_observationOperator, t_Ns)
         self.setAbstractEnKFParameters(t_covarianceInflation)
+        self.setAbstractEnKFTemporaryArrays()
 
     #_________________________
 
@@ -33,13 +34,17 @@ class AbstractEnKF(AbstractEnsembleFilter):
 
     #_________________________
 
-    def computeAnalysePerformance(self, t_xt, t_iEnd, t_index):
-        # record estimation and compute performance between tStart (excluded) and tEnd (included)
-        # also apply inflation 
+    def setAbstractEnKFTemporaryArrays(self):
+        # allocate temporary arrays 
+        self.m_Hxf = np.zeros((self.m_Ns, self.m_observationOperator.m_spaceDimension))
 
-        AbstractEnsembleFilter.computeAnalysePerformance(self, t_xt, t_iEnd, t_index)
-        # apply inflation around the ensemble mean
-        self.m_x[t_iEnd] = self.m_estimate[t_index] + self.m_covarianceInflation * ( self.m_x[t_iEnd] - self.m_estimate[t_index] )
+    #_________________________
+
+    def computeAnalysePerformance(self, t_xt, t_iEnd):
+        AbstractEnsembleFilter.computeAnalysePerformance(self, t_xt, t_iEnd)
+
+        # also apply inflation around the ensemble mean
+        self.m_x[t_iEnd] = self.m_estimation + self.m_covarianceInflation * ( self.m_x[t_iEnd] - self.m_estimation )
 
     #_________________________
 

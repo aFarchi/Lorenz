@@ -21,8 +21,8 @@ class StochasticEnKF(AbstractEnKF):
 
     #_________________________
 
-    def __init__(self, t_integrator, t_observationOperator, t_Ns, t_covarianceInflation):
-        AbstractEnKF.__init__(self, t_integrator, t_observationOperator, t_Ns, t_covarianceInflation)
+    def __init__(self, t_label, t_integrator, t_observationOperator, t_Ns, t_covarianceInflation):
+        AbstractEnKF.__init__(self, t_label, t_integrator, t_observationOperator, t_Ns, t_covarianceInflation)
 
     #_________________________
 
@@ -30,27 +30,27 @@ class StochasticEnKF(AbstractEnKF):
         # analyse observation at time t
 
         # perturb observations
-        shape = (self.m_Ns, self.m_spaceDimension)
+        shape = (self.m_Ns, t_observation.size)
         oe    = self.m_observationOperator.drawErrorSamples(t_t, shape)
 
-        # shortcut
+        # forecast
         xf    = self.m_x[t_index]
+        self.m_observationOperator.deterministicObserve(xf, t_t, self.m_Hxf)
 
         # Ensemble means
         xf_m  = xf.mean(axis = 0)
         oe_m  = oe.mean(axis = 0)
-        Hxf   = self.m_observationOperator.deterministicObserve(xf, t_t)
-        Hxf_m = Hxf.mean(axis = 0)
+        Hxf_m = self.m_Hxf.mean(axis = 0)
 
         # Normalized anomalies
         Xf    = ( xf - xf_m ) / np.sqrt( self.m_Ns - 1.0 )
-        Yf    = ( Hxf - Hxf_m - oe + oe_m ) / np.sqrt( self.m_Ns - 1.0 )
+        Yf    = ( self.m_Hxf - Hxf_m - oe + oe_m ) / np.sqrt( self.m_Ns - 1.0 )
 
         # Kalman gain
         K     = np.dot ( np.linalg.pinv ( np.dot ( np.transpose ( Yf ) , Yf ) ) , np.dot ( np.transpose ( Yf ) , Xf ) )
 
         # Update
-        xf   += np.dot ( t_observation + oe - Hxf , K )
+        xf   += np.dot ( t_observation + oe - self.m_Hxf , K )
 
 #__________________________________________________
 

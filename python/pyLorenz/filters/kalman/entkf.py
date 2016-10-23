@@ -21,8 +21,8 @@ class EnTKF(AbstractEnKF):
 
     #_________________________
 
-    def __init__(self, t_integrator, t_observationOperator, t_Ns, t_covarianceInflation, t_U = None):
-        AbstractEnKF.__init__(self, t_integrator, t_observationOperator, t_Ns, t_covarianceInflation)
+    def __init__(self, t_label, t_integrator, t_observationOperator, t_Ns, t_covarianceInflation, t_U = None):
+        AbstractEnKF.__init__(self, t_label, t_integrator, t_observationOperator, t_Ns, t_covarianceInflation)
         self.setEnTKFParameters(t_U)
 
     #_________________________
@@ -41,24 +41,23 @@ class EnTKF(AbstractEnKF):
 
         # shortcut
         xf    = self.m_x[t_index]
+        self.m_observationOperator.deterministicObserve(xf, t_t, self.m_Hxf)
 
         # Ensemble means
         xf_m  = xf.mean(axis = 0)
-        Hxf   = self.m_observationOperator.deterministicObserve(xf, t_t)
-        Hxf_m = Hxf.mean(axis = 0)
+        Hxf_m = self.m_Hxf.mean(axis = 0)
 
         # Normalized anomalies
         Xf    = ( xf - xf_m ) / np.sqrt( self.m_Ns - 1.0 )
-        Yf    = ( Hxf - Hxf_m ) / np.sqrt( self.m_Ns - 1.0 )
+        Yf    = ( self.m_Hxf - Hxf_m ) / np.sqrt( self.m_Ns - 1.0 )
 
         # Analyse
-        Rm1_2    = self.m_observationOperator.errorStdDevMatrix_inv(t_t)
+        S        = self.m_observationOperator.applyRightErrorStdDevMatrix_inv(Yf)
+        delta    = self.m_observationOperator.applyLeftErrorStdDevMatrix_inv(t_observation-Hxf_m)
 
-        S        = np.dot ( Yf , Rm1_2 )
-        delta    = np.dot ( Rm1_2 , t_observation - Hxf_m )
-
-        Tm1      = np.eye(self.m_Ns) + np.dot( S , np.transpose(S) )
-        U, s, V  = np.linalg.svd(Tm1) # T^-1 = ( U * s ) * V, T = ( tV / s ) * tU
+        Tm1      = np.eye(self.m_Ns) + np.dot( S , np.transpose(S) ) # T^-1
+        U, s, V  = np.linalg.svd(Tm1) 
+        # note: T^-1 = ( U * s ) * V hence T = ( tV / s ) * tU
 
         # w = T * S * delta 
         w = np.dot ( np.dot ( np.transpose(V) / s , np.transpose(U) ) , np.dot ( S , delta ) )

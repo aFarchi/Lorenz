@@ -21,8 +21,8 @@ class AMSIRPF(MSIRPF):
 
     #_________________________
 
-    def __init__(self, t_integrator, t_observationOperator, t_Ns, t_resampler, t_resamplingTrigger, t_iSampler):
-        MSIRPF.__init__(self, t_integrator, t_observationOperator, t_Ns, t_resampler, t_resamplingTrigger, t_iSampler)
+    def __init__(self, t_label, t_integrator, t_observationOperator, t_Ns, t_resampler, t_resamplingTrigger, t_iSampler):
+        MSIRPF.__init__(self, t_label, t_integrator, t_observationOperator, t_Ns, t_resampler, t_resamplingTrigger, t_iSampler)
 
     #_________________________
 
@@ -37,7 +37,8 @@ class AMSIRPF(MSIRPF):
         # first stage
         self.m_integrator.deterministicIntegrate(self.m_x, t_tStart, t_tEnd, self.m_dx) # note that one could also use integrate() instead of deterministicIntegrate()
         fsx = np.copy(self.m_x[iEnd]) # copy is necessary since self.m_x[iEnd] will be rewritten when forecasting [see l. 53]
-        fsw = self.m_observationOperator.pdf(t_observation, self.m_x[iEnd], t_tEnd)
+        self.m_observationOperator.deterministicObserve(self.m_x[iEnd], t_tEnd, self.m_Hx)
+        fsw = self.m_observationOperator.pdf(t_observation, self.m_Hx, t_tEnd)
 
         # sample x[tEnd] according to sum ( w[i] * fsw[i] * p ( x[tEnd] | x[tStart, i] )
         # this is equivalent to resampling at time tStart, isn't it ???

@@ -168,7 +168,8 @@ class NewtonMinimiser(object):
         # minimise the scalar function f over interval [x1, x3], with the first guess x 
         x = np.array([t_x])
         (xm, h, nit) = self.minimise(t_f, x)
-        return (xm[0], nit)
+        xm = max(min(xm[0], t_x3), t_x1)
+        return (xm, nit)
 
 #__________________________________________________
 

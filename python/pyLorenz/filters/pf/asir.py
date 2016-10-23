@@ -21,8 +21,8 @@ class ASIRPF(SIRPF):
 
     #_________________________
 
-    def __init__(self, t_integrator, t_observationOperator, t_Ns, t_resampler, t_resamplingTrigger):
-        SIRPF.__init__(self, t_integrator, t_observationOperator, t_Ns, t_resampler, t_resamplingTrigger)
+    def __init__(self, t_label, t_integrator, t_observationOperator, t_Ns, t_resampler, t_resamplingTrigger):
+        SIRPF.__init__(self, t_label, t_integrator, t_observationOperator, t_Ns, t_resampler, t_resamplingTrigger)
 
     #_________________________
 
@@ -36,7 +36,8 @@ class ASIRPF(SIRPF):
 
         # first stage
         self.m_integrator.deterministicIntegrate(self.m_x, t_tStart, t_tEnd, self.m_dx) # note that one could also use integrate() instead of deterministicIntegrate()
-        fsw = self.m_observationOperator.pdf(t_observation, self.m_x[iEnd], t_tEnd)
+        self.m_observationOperator.deterministicObserve(self.m_x[iEnd], t_tEnd, self.m_Hx)
+        fsw = self.m_observationOperator.pdf(t_observation, self.m_Hx, t_tEnd)
 
         # resample at time tStart given these weights
         # note that we do not need the weights to be normalized since the resampler make sure of it

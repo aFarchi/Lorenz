@@ -30,15 +30,15 @@ class RandomInitialiser(object):
 
     #_________________________
 
-    def initialiseTruth(self):
+    def initialiseTruth(self, t_xt):
         # return the truth
-        return self.m_truth
+        t_xt[:] = self.m_truth
 
     #_________________________
 
-    def initialiseSamples(self, t_shape):
+    def initialiseSamples(self, t_x):
         # return the truth + some error
-        return self.m_truth + self.m_errorGenerator.drawSamples(0, t_shape)
+        t_x[:]  = self.m_truth + self.m_errorGenerator.drawSamples(0, t_x.shape)
 
 #__________________________________________________
 

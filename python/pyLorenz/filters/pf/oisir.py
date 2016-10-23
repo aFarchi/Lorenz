@@ -22,8 +22,8 @@ class OISIRPF_diag(SIRPF):
 
     #_________________________
 
-    def __init__(self, t_integrator, t_observationOperator, t_Ns, t_resampler, t_resamplingTrigger):
-        SIRPF.__init__(self, t_integrator, t_observationOperator, t_Ns, t_resampler, t_resamplingTrigger)
+    def __init__(self, t_label, t_integrator, t_observationOperator, t_Ns, t_resampler, t_resamplingTrigger):
+        SIRPF.__init__(self, t_label, t_integrator, t_observationOperator, t_Ns, t_resampler, t_resamplingTrigger)
 
     #_________________________
 
@@ -62,7 +62,8 @@ class OISIRPF_diag(SIRPF):
             self.m_w -= 0.5 * ( d * s * d ).sum(axis = -1)
 
             # w /= p( observation | x[tEnd] )
-            self.m_w -= self.m_observationOperator.pdf(t_observation, self.m_x[iEnd], t_tEnd)
+            self.m_observationOperator.deterministicObserve(self.m_x[iEnd], t_tEnd, self.m_Hx)
+            self.m_w -= self.m_observationOperator.pdf(t_observation, self.m_Hx, t_tEnd)
 
         else:
             # w *= p( x[tEnd] | x[tStart] )

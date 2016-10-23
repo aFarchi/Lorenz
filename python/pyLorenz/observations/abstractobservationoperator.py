@@ -30,16 +30,16 @@ class AbstractObservationOperator(object):
 
     #_________________________
 
-    def deterministicObserve(self, t_x, t_t):
+    def deterministicObserve(self, t_x, t_t, t_y):
         # deterministic observation
         raise NotImplementedError
 
     #_________________________
 
-    def observe(self, t_x, t_t):
+    def observe(self, t_x, t_t, t_y):
         # deterministic observation + observation errors
-        y = self.deterministicObserve(t_x, t_t)
-        return y + self.drawErrorSamples(t_t, y.shape)
+        self.deterministicObserve(t_x, t_t, t_y)
+        t_y += self.drawErrorSamples(t_t, t_y.shape)
 
     #_________________________
 
@@ -67,10 +67,22 @@ class AbstractObservationOperator(object):
 
     #_________________________
 
-    def pdf(self, t_observation, t_x, t_t):
+    def pdf(self, t_observation, t_Hx, t_t):
         # observation pdf in log scale : log ( p ( observation | x ) )
         # in this case it is the error generator pdf at time t taken at point ( observation - H ( x ) )
-        return self.m_errorGenerator.pdf(t_observation-self.deterministicObserve(t_x, t_t), t_t)
+        return self.m_errorGenerator.pdf(t_observation-t_Hx, t_t)
+
+    #_________________________
+
+    def applyLeftErrorStdDevMatrix_inv(self, t_x):
+        # return R^(-1/2) . x
+        return self.m_errorGenerator.applyLeftStdDevMatrix_inv(t_x)
+
+    #_________________________
+
+    def applyRightErrorStdDevMatrix_inv(self, t_x):
+        # return x . R^(-1/2)
+        return self.m_errorGenerator.applyRightStdDevMatrix_inv(t_x)
 
     #_________________________
 
