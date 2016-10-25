@@ -14,6 +14,8 @@
 import numpy as np
 import time  as tm
 
+from ..bash.bash import *
+
 #__________________________________________________
 
 class AbstractOutput(object):
@@ -35,10 +37,28 @@ class AbstractOutput(object):
 
     #_________________________
 
+    def createOutputDir(self):
+        # create output dir
+        createDir(self.m_outputDir)
+
+    #_________________________
+
+    def copyConfigToOutputDir(self, t_config, t_label):
+        # copy config file to output dir
+        d = self.m_outputDir + t_label + '.cfg'
+        f = open(d, 'w')
+        t_config.write(f)
+        f.close()
+
+    #_________________________
+
     def start(self, t_xDim, t_yDim, t_filters):
         # start simulation
         self.m_timeStart = tm.time()
         print('Starting simulation')
+
+        # create output dir
+        self.createOutputDir()
 
         # counter
         self.m_counter = 0
