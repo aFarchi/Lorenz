@@ -31,22 +31,20 @@ initialiser      = initialiserFromConfig(config, 'initialisation', xDimension)
 model            = modelFromConfig(config, 'model')
 
 # Integrator
-integrator       = integratorFromConfig(config, 'integration', xDimension, model)
+integrator       = integratorFromConfig(config, 'integration', model)
 
 # Observation operator
 observation      = observationOperatorFromConfig(config, 'observation', yDimension)
 observationTimes = observationTimesFromConfig(config, 'observation')
 
-observation_var  = eval(config.get('observation', 'variance'))
-
 # Output
-output           = outputFromConfig(config, 'output', 'observation')
+output           = outputFromConfig(config, 'output', 'observation', 'integration')
 
 # Simulation
 simulation       = Simulation(initialiser, integrator, observation, observationTimes, output)
 
 # Filter
-da_filter        = filterFromConfig(config, 'assimilation', integrator, observation)
+da_filter        = filterFromConfig(config, 'assimilation', 'integration', model, observation)
 simulation.addFilter(da_filter)
 
 # run

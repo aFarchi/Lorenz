@@ -13,20 +13,24 @@
 
 #__________________________________________________
 
-def outputSubDir(t_outputDir, t_observation_dt, t_observation_var):
+def outputSubDir(t_outputDir, t_observation_dt, t_observation_var, t_integration_var):
     # output sub dir
     return ( t_outputDir                                   + 
             str(t_observation_dt).replace('.', 'p')  + '/' +
-            str(t_observation_var).replace('.', 'p') + '/' )
+            str(t_observation_var).replace('.', 'p') + '/' +
+            str(t_integration_var).replace('.', 'p') + '/' )
 
 #__________________________________________________
 
-def filterLabel(t_filter, t_filter_Ns, t_filter_inflation, t_filter_res_thr):
+def filterLabel(t_filter, t_filter_Ns, t_filter_inflation, t_filter_jit, t_filter_res_thr):
     # filter label
-    return ( t_filter                                       +
-            '_' + str(t_filter_Ns)                          +
-            '_' + str(t_filter_inflation).replace('.', 'p') +
-            '_' + str(t_filter_res_thr).replace('.', 'p')   )
+    label = t_filter + '_' + str(t_filter_Ns)
+    if 'kf' in t_filter:
+        label += '_' + str(t_filter_inflation).replace('.', 'p')
+    label += '_' + str(t_filter_jit).replace('.', 'p')
+    if 'pf' in t_filter:
+        label += '_' + str(t_filter_res_thr).replace('.', 'p')
+    return label
 
 #__________________________________________________
 

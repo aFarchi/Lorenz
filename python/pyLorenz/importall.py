@@ -75,34 +75,47 @@ def modelFromConfig(t_config, t_section):
 
 #__________________________________________________
 
-def integratorFromConfig(t_config, t_section, t_stateDimension, t_model):
+def buildIntegrator(t_integrator_cls, t_integrator_stp, t_integrator_dt, t_integrator_var, t_model):
+    # build integrator object from parameters
+
+    # error generator
+    if t_integrator_var is None or t_integrator_cls == 'Deterministic':
+        integrator_eg  = None
+    else:
+        integrator_var = eval(t_integrator_var)
+        if integrator_var > 0.0:
+            integrator_std = np.sqrt(eval(t_integrator_var)) * np.ones(t_model.m_spaceDimension)
+            integrator_eg  = IndependantGaussianErrorGenerator(integrator_std)
+        else:
+            integrator_eg  = None
+
+    # integration step
+    if t_integrator_stp == 'EulerExpl':
+        integrator_stp = EulerExplIntegrationStep(t_integrator_dt, t_model, integrator_eg)
+    elif t_integrator_stp == 'KP':
+        integrator_stp = KPIntegrationStep(t_integrator_dt, t_model, integrator_eg)
+    elif t_integrator_stp == 'RK2':
+        integrator_stp = RK2IntegrationStep(t_integrator_dt, t_model, integrator_eg)
+    elif t_integrator_stp == 'RK4':
+        integrator_stp = RK4IntegrationStep(t_integrator_dt, t_model, integrator_eg)
+
+    # integrator
+    if integrator_eg is None:
+        return DeterministicIntegrator(integrator_stp)
+    elif t_integrator_cls == 'BasicStochastic':
+        return BasicStochasticIntegrator(integrator_stp)
+    elif t_integrator_cls == 'Stochastic':
+        return StochasticIntegrator(integrator_stp)
+
+#__________________________________________________
+
+def integratorFromConfig(t_config, t_section, t_model):
     # build integrator object from section of config
     integrator_dt  = t_config.getfloat(t_section, 'dt')
     integrator_var = t_config.get(t_section, 'variance')
-    if integrator_var is None:
-        integrator_eg = None
-    else:
-        integrator_std = np.sqrt(eval(integrator_var)) * np.ones(t_stateDimension)
-        integrator_eg  = IndependantGaussianErrorGenerator(integrator_std)
-
-    integrator_stp = t_config.get(t_section, 'step' )
-
-    if integrator_stp == 'EulerExpl':
-        integrator_stp = EulerExplIntegrationStep(integrator_dt, t_model, integrator_eg)
-    elif integrator_stp == 'KP':
-        integrator_stp = KPIntegrationStep(integrator_dt, t_model, integrator_eg)
-    elif integrator_stp == 'RK2':
-        integrator_stp = RK2IntegrationStep(integrator_dt, t_model, integrator_eg)
-    elif integrator_stp == 'RK4':
-        integrator_stp = RK4IntegrationStep(integrator_dt, t_model, integrator_eg)
-
+    integrator_stp = t_config.get(t_section, 'step')
     integrator_cls = t_config.get(t_section, 'class')
-    if integrator_cls == 'Deterministic':
-        return DeterministicIntegrator(integrator_stp)
-    elif integrator_cls == 'BasicStochastic':
-        return BasicStochasticIntegrator(integrator_stp)
-    elif integrator_cls == 'Stochastic':
-        return StochasticIntegrator(integrator_stp)
+    return buildIntegrator(integrator_cls, integrator_stp, integrator_dt, integrator_var, t_model)
 
 #__________________________________________________
 
@@ -126,9 +139,17 @@ def observationTimesFromConfig(t_config, t_section):
     return observation_dt * np.arange(observation_Nt)
 #__________________________________________________
 
-def outputFromConfig(t_config, t_section, t_sectionObservations):
+def outputFromConfig(t_config, t_section, t_sectionObservation, t_sectionIntegration):
     # build output object from section of config
-    output_dir = outputSubDir(t_config.get(t_section, 'directory'), t_config.getfloat(t_sectionObservations, 'dt'), eval(t_config.get(t_sectionObservations, 'variance')))
+    obs_dt     = t_config.getfloat(t_sectionObservation, 'dt')
+    obs_var    = eval(t_config.get(t_sectionObservation, 'variance'))
+    int_var    = t_config.get(t_sectionIntegration, 'variance')
+    int_cls    = t_config.get(t_sectionIntegration, 'class')
+    if int_cls == 'Deterministic' or int_var is None:
+        int_var = 0.0
+    else:
+        int_var = eval(int_var)
+    output_dir = outputSubDir(t_config.get(t_section, 'directory'), obs_dt, obs_var, int_var)
     output_trg = ModulusTrigger(t_config.getint(t_section, 'nPrint'), 0)
     output_nwt = t_config.getint(t_section, 'nWrite')
     output_cls = t_config.get(t_section, 'class')
@@ -169,55 +190,64 @@ def resamplerFromConfig(t_config, t_section):
 
 #__________________________________________________
 
-def filterFromConfig(t_config, t_section, t_integrator, t_observation):
+def filterFromConfig(t_config, t_section, t_sectionIntegration, t_model, t_observation):
     # build filter object from section of config
     filter_cls  = t_config.get(t_section, 'filter')
     filter_Ns   = t_config.getint(t_section, 'Ns')
+
     try:
         filter_infl = eval(t_config.get(t_section, 'inflation'))
     except:
         filter_infl = 1.0
+
+    int_dt      = t_config.getfloat(t_sectionIntegration, 'dt')
+    int_var     = t_config.get(t_section, 'int_jitter')
+    int_stp     = t_config.get(t_sectionIntegration, 'step')
+    int_cls     = t_config.get(t_section, 'int_cls')
+    filter_int  =  buildIntegrator(int_cls, int_stp, int_dt, int_var, t_model)
+
     try:
-        filter_rt   = eval(t_config.get(t_section, 'res_thr'))
+        filter_rt = eval(t_config.get(t_section, 'res_thr'))
     except:
-        filter_rt   = 0.5
-    filter_lbl  = filterLabel(filter_cls, filter_Ns, filter_infl, filter_rt)
+        filter_rt = 0.5
+
+    filter_lbl  = filterLabel(filter_cls, filter_Ns, filter_infl, int_var, filter_rt)
 
     if filter_cls == 'senkf':
-        return StochasticEnKF(filter_lbl, t_integrator, t_observation, filter_Ns, filter_infl)
+        return StochasticEnKF(filter_lbl, filter_int, t_observation, filter_Ns, filter_infl)
 
     elif filter_cls == 'entkf':
         U = np.eye(filter_Ns)
-        return EnTKF(filter_lbl, t_integrator, t_observation, filter_Ns, filter_infl, U)
+        return EnTKF(filter_lbl, filter_int, t_observation, filter_Ns, filter_infl, U)
 
     elif filter_cls == 'entkfn-dual-capped':
         U         = np.eye(filter_Ns)
         epsilon   = filter_Ns / ( filter_Ns - 1.0 )
         maxZeta   = filter_Ns - 1.0 
         minimiser = minimiserFromConfig(t_config, t_section)
-        return EnTKF_N_dual(filter_lbl, t_integrator, t_observation, filter_Ns, filter_infl, minimiser, epsilon, maxZeta, U)
+        return EnTKF_N_dual(filter_lbl, filter_int, t_observation, filter_Ns, filter_infl, minimiser, epsilon, maxZeta, U)
 
     elif filter_cls == 'entkfn-dual':
         U         = np.eye(filter_Ns)
         epsilon   = ( filter_Ns + 1.0 ) / filter_Ns
         maxZeta   = float(filter_Ns)
         minimiser = minimiser1DFromConfig(t_config, t_section)
-        return EnTKF_N_dual(filter_lbl, t_integrator, t_observation, filter_Ns, filter_infl, minimiser, epsilon, maxZeta, U)
+        return EnTKF_N_dual(filter_lbl, filter_int, t_observation, filter_Ns, filter_infl, minimiser, epsilon, maxZeta, U)
 
-    elif filter_cls == 'sir':
+    elif filter_cls == 'sirpf':
         resampler = resamplerFromConfig(t_config, t_section)
         trigger   = ThresholdTrigger(filter_rt)
-        return SIRPF(filter_lbl, t_integrator.basicStochasticIntegrator(), t_observation, filter_Ns, resampler, trigger)
+        return SIRPF(filter_lbl, filter_int, t_observation, filter_Ns, resampler, trigger)
 
-    elif filter_cls == 'asir':
+    elif filter_cls == 'asirpf':
         resampler = resamplerFromConfig(t_config, t_section)
         trigger   = ThresholdTrigger(filter_rt)
-        return ASIRPF(filter_lbl, t_integrator.basicStochasticIntegrator(), t_observation, filter_Ns, resampler, trigger)
+        return ASIRPF(filter_lbl, filter_int, t_observation, filter_Ns, resampler, trigger)
 
-    elif filter_cls == 'oisir':
+    elif filter_cls == 'oisirpf':
         resampler = resamplerFromConfig(t_config, t_section)
         trigger   = ThresholdTrigger(filter_rt)
-        return OISIRPF(filter_lbl, t_integrator.basicStochasticIntegrator(), t_observation, filter_Ns, resampler, trigger)
+        return OISIRPF(filter_lbl, filter_int, t_observation, filter_Ns, resampler, trigger)
 
 #__________________________________________________
 

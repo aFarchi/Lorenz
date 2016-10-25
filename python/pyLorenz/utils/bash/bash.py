@@ -20,7 +20,7 @@ def createDir(t_dir):
     # create directory
     command = ['mkdir', '-p', t_dir]
     out     = check_output(command)
-    if out is not '':
+    if out == '':
         print(out)
 
 #__________________________________________________
