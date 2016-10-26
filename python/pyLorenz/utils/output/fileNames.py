@@ -8,29 +8,48 @@
 # last modified : 2016/10/23
 #__________________________________________________
 #
-# fonctions used to determine file names
+# fonctions used to determine file names from config
 #
 
 #__________________________________________________
 
-def outputSubDir(t_outputDir, t_observation_dt, t_observation_var, t_integration_var):
-    # output sub dir
-    return ( t_outputDir                                   + 
-            str(t_observation_dt).replace('.', 'p')  + '/' +
-            str(t_observation_var).replace('.', 'p') + '/' +
-            str(t_integration_var).replace('.', 'p') + '/' )
+def outputSubDir(t_config):
+    # output sub directory
+    outputDir = t_config.get('output', 'directory')
+    obs_dt    = str(eval(t_config.get('observation', 'dt'))).replace('.', 'p')
+    obs_var   = str(eval(t_config.get('observation', 'variance'))).replace('.', 'p')
+    int_var   = str(eval(t_config.get('integration', 'variance'))).replace('.', 'p')
+    return ( outputDir + obs_dt + '/' + obs_var + '/' + int_var + '/' )
 
 #__________________________________________________
 
-def filterLabel(t_filter, t_filter_Ns, t_filter_inflation, t_filter_jit, t_filter_res_thr):
-    # filter label
-    label = t_filter + '_' + str(t_filter_Ns)
-    if 'kf' in t_filter:
-        label += '_' + str(t_filter_inflation).replace('.', 'p')
-    label += '_' + str(t_filter_jit).replace('.', 'p')
-    if 'pf' in t_filter:
-        label += '_' + str(t_filter_res_thr).replace('.', 'p')
-    return label
+def EnKFLabel(t_config):
+    # generic EnKF label
+    flavor    = t_config.get('assimilation', 'filter')
+    Ns        = str(t_config.getint('assimilation', 'Ns'))
+    inflation = str(eval(t_config.get('assimilation', 'inflation'))).replace('.', 'p')
+    jitter    = str(eval(t_config.get('assimilation', 'integration_jitter'))).replace('.', 'p')
+    return ( flavor + '_' + Ns + '_' + inflation + '_' + jitter )
+
+#__________________________________________________
+
+def PFLabel(t_config):
+    # generic particle filter label
+    flavor  = t_config.get('assimilation', 'filter')
+    Ns      = str(t_config.getint('assimilation', 'Ns'))
+    res_thr = str(eval(t_config.get('assimilation', 'resampling_thr'))).replace('.', 'p')
+    jitter  = str(eval(t_config.get('assimilation', 'integration_jitter'))).replace('.', 'p')
+    return ( flavor + '_' + Ns + '_' + res_thr + '_' + jitter )
+    
+#__________________________________________________
+
+def filterLabel(t_config):
+    # generic filter label
+    flavor = t_config.get('assimilation', 'filter')
+    if 'en' in flavor and 'kf' in flavor:
+        return EnKFLabel(t_config, 'assimilation')
+    elif 'pf' in flavor:
+        return PFLabel(t_config, 'assimilation')
 
 #__________________________________________________
 

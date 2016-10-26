@@ -18,26 +18,19 @@ from subprocess import check_output
 
 def createDir(t_dir):
     # create directory
+    print('Making output directory: '+t_dir)
     command = ['mkdir', '-p', t_dir]
     out     = check_output(command)
-    if out == '':
+    if not out == '':
         print(out)
 
 #__________________________________________________
 
-def extractArgv():
-    # extract argument used to call launcher
-    args            = {}
-    args['COMMAND'] = sys.argv.pop(0)
-
-    for arg in sys.argv:
-        members          = arg.split('=')
-        try:
-            args[members[0]] = members[1]
-        except:
-            args[members[0]] = None
-
-    return args
+def configFileNamesFromCommand():
+    # extract the list of config files from the command used to launch the simulation
+    cfn = list(sys.argv)
+    cfn.pop(0)
+    return cfn
 
 #__________________________________________________
 
