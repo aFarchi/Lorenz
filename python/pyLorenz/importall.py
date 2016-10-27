@@ -58,18 +58,18 @@ from filters.pf.amsir                                import AMSIRPF
 def checkDeterministicIntegration(t_config):
     # make sure zero integration variance is used with deterministic integrator
     integration_var = eval(t_config.get('integration', 'variance'))
-    integration_cls = t_config.get('integration', 'class')
-
-    if integration_var == 0.0 or integration_var is None:
+    if integration_var is None or integration_var == 0.0:
         t_config.set('integration', 'class', 'Deterministic')
+
+    integration_cls = t_config.get('integration', 'class')
     if integration_cls == 'Deterministic':
         t_config.set('integration', 'variance', '0.0')
 
-    integration_jit     = eval(t_config.get('assimilation', 'integration_jitter'))
-    integration_jit_cls = t_config.get('assimilation', 'integration_class')
-    
-    if integration_jit == 0.0 or integration_jit is None:
+    integration_jit = eval(t_config.get('assimilation', 'integration_jitter'))
+    if integration_jit is None or integration_jit == 0.0:
         t_config.set('assimilation', 'integration_class', 'Deterministic')
+
+    integration_jit_cls = t_config.get('assimilation', 'integration_class')
     if integration_jit_cls == 'Deterministic':
         t_config.set('assimilation', 'integration_jitter', '0.0')
 
@@ -266,7 +266,7 @@ def PFFromConfig(t_config, t_model, t_observation):
     filter_Ns  = int(eval(t_config.get('assimilation', 'Ns')))
     filter_rt  = eval(t_config.get('assimilation', 'resampling_thr'))
     filter_int = integratorFromConfig(t_config, 'filter', t_model)
-    filter_lbl = EnKFLabel(t_config)
+    filter_lbl = PFLabel(t_config)
 
     resampler  = resamplerFromConfig(t_config)
     trigger    = ThresholdTrigger(filter_rt)

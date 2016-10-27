@@ -43,15 +43,6 @@ class AbstractOutput(object):
 
     #_________________________
 
-    def copyConfigToOutputDir(self, t_config, t_label):
-        # copy config file to output dir
-        d = self.m_outputDir + t_label + '.cfg'
-        f = open(d, 'w')
-        t_config.write(f)
-        f.close()
-
-    #_________________________
-
     def start(self, t_xDim, t_yDim, t_filters):
         # start simulation
         self.m_timeStart = tm.time()

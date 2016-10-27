@@ -18,7 +18,7 @@ from subprocess import check_output
 
 def createDir(t_dir):
     # create directory
-    print('Making output directory: '+t_dir)
+    print('Making directory: '+t_dir)
     command = ['mkdir', '-p', t_dir]
     out     = check_output(command)
     if not out == '':
