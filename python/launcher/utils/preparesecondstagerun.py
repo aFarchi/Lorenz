@@ -13,6 +13,7 @@
 
 import numpy as np
 
+from cPickle                import Pickler
 from bash                   import *
 from cast                   import *
 from firststageoptimisation import *
@@ -25,8 +26,6 @@ from itertools              import product
 
 def prepareENKFSecondStageRun(t_msConfig, t_filter, t_observation_dt, t_observation_var, t_integration_var, t_SSConfigs):
     # build configs for second stage run of an EnKF
-
-    #SSConfigs      = []
 
     # parameters allowed to vary
     parameterNames = EnKFVaryingParameters()
@@ -85,17 +84,12 @@ def prepareENKFSecondStageRun(t_msConfig, t_filter, t_observation_dt, t_observat
             config.write(configFile)
             configFile.close()
 
-            #SSConfigs.append(configFN)
             t_SSConfigs[(t_observation_dt, t_observation_var, t_integration_var)][(t_filter, inflation, Ns, integration_jitter)] = configFN
-
-    #return SSConfigs
 
 #__________________________________________________
 
 def preparePFSecondStageRun(t_msConfig, t_filter, t_observation_dt, t_observation_var, t_integration_var, t_SSConfigs):
     # build configs for second stage run of a PF
-
-    #SSConfigs      = []
 
     # parameters allowed to vary
     parameterNames = PFVaryingParameters()
@@ -151,10 +145,7 @@ def preparePFSecondStageRun(t_msConfig, t_filter, t_observation_dt, t_observatio
             config.write(configFile)
             configFile.close()
 
-            #SSConfigs.append(configFN)
             t_SSConfigs[(t_observation_dt, t_observation_var, t_integration_var)][(t_filter, resampling_thr, Ns, integration_jitter)] = configFN
-
-    #return SSConfigs
 
 #__________________________________________________
 
@@ -162,11 +153,9 @@ def prepareFilterSecondStageRun(t_msConfig, t_filter, t_observation_dt, t_observ
     # build configs for second stage run of a filter
 
     if 'en' in t_filter and 'kf' in t_filter:
-        #return prepareENKFSecondStageRun(t_msConfig, t_filter, t_observation_dt, t_observation_var, t_integration_var)
         prepareENKFSecondStageRun(t_msConfig, t_filter, t_observation_dt, t_observation_var, t_integration_var, t_SSConfigs)
 
     elif 'pf' in t_filter:
-        #return preparePFSecondStageRun(t_msConfig, t_filter, t_observation_dt, t_observation_var, t_integration_var)
         preparePFSecondStageRun(t_msConfig, t_filter, t_observation_dt, t_observation_var, t_integration_var, t_SSConfigs)
 
 #__________________________________________________
@@ -174,7 +163,6 @@ def prepareFilterSecondStageRun(t_msConfig, t_filter, t_observation_dt, t_observ
 def prepareSecondStageRun(t_msConfig):
     # build configs for second stage run
 
-    #SSConfigs       = []
     SSConfigs       = {}
 
     observation_dt  = makeNumpyArray(eval(t_msConfig.get('observation', 'dt')))
@@ -189,16 +177,13 @@ def prepareSecondStageRun(t_msConfig):
         SSConfigs[(obs_dt, obs_var, int_var)] = {}
 
         for f in afilters:
-            #SSConfigs.extend(prepareFilterSecondStageRun(t_msConfig, f, obs_dt, obs_var, int_var))
             prepareFilterSecondStageRun(t_msConfig, f, obs_dt, obs_var, int_var, SSConfigs)
 
-    SSConfigFile = open(t_msConfig.get('output', 'directory')+'second-stage-configs.dat', 'w')
-    #for ssc in SSConfigs:
-        #SSConfigFile.write(ssc+'\n')
-    for truthParameters in SSConfigs:
-        for filterParameters in SSConfigs[truthParameters]:
-            SSConfigFile.write(SSConfigs[truthParameters][filterParameters]+'\n')
+    SSConfigFile = open(t_msConfig.get('output', 'directory')+'secondStageConfigs.bin', 'wb')
+    p            = Pickler(SSConfigFile, protocol = -1)
+    p.dump(SSConfigs)
     SSConfigFile.close()
+
     return SSConfigs
 
 #__________________________________________________

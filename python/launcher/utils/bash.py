@@ -116,7 +116,7 @@ def runConfigList(t_programm, t_configList, t_nProcs):
             sys.exit(runOneConfig(t_programm, t_configList[nc]))
 
     # wait until all processors have finished
-    for i in range(nTask):
+    for i in range(NTask):
         os.wait()
 
 #__________________________________________________

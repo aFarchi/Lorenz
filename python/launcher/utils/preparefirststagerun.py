@@ -11,6 +11,7 @@
 # functions to prepare first stage run
 #
 
+from cPickle                import Pickler
 from bash                   import *
 from cast                   import *
 from firststageoptimisation import *
@@ -45,10 +46,7 @@ def prepareENKFFirstStageRun(t_msConfig, t_filter, t_observation_dt, t_observati
             config.write(configFile)
             configFile.close()
 
-            #t_FSConfigList.append(configFN)
             t_FSConfigs[(t_observation_dt, t_observation_var, t_integration_var)][(t_filter, inflation, Ns, integration_jitter)] = configFN
-
-    #return FSConfigs
 
 #__________________________________________________
 
@@ -78,10 +76,7 @@ def preparePFFirstStageRun(t_msConfig, t_filter, t_observation_dt, t_observation
             config.write(configFile)
             configFile.close()
 
-            #FSConfigs.append(configFN)
             t_FSConfigs[(t_observation_dt, t_observation_var, t_integration_var)][(t_filter, resampling_thr, Ns, integration_jitter)] = configFN
-
-    #return FSConfigs
 
 #__________________________________________________
 
@@ -89,11 +84,9 @@ def prepareFilterFirstStageRun(t_msConfig, t_filter, t_observation_dt, t_observa
     # build configs for first stage run of a filter
 
     if 'en' in t_filter and 'kf' in t_filter:
-        #return prepareENKFFirstStageRun(t_msConfig, t_filter, t_observation_dt, t_observation_var, t_integration_var)
         prepareENKFFirstStageRun(t_msConfig, t_filter, t_observation_dt, t_observation_var, t_integration_var, t_FSConfigs)
 
     elif 'pf' in t_filter:
-        #return preparePFFirstStageRun(t_msConfig, t_filter, t_observation_dt, t_observation_var, t_integration_var)
         preparePFFirstStageRun(t_msConfig, t_filter, t_observation_dt, t_observation_var, t_integration_var, t_FSConfigs)
 
 #__________________________________________________
@@ -103,7 +96,6 @@ def prepareFirstStageRun(t_msConfig):
 
     createDir(t_msConfig.get('output', 'directory'))
 
-    #FSConfigs       = []
     FSConfigs       = {}
 
     observation_dt  = makeNumpyArray(eval(t_msConfig.get('observation', 'dt')))
@@ -118,15 +110,11 @@ def prepareFirstStageRun(t_msConfig):
         FSConfigs[(obs_dt, obs_var, int_var)] = {}
 
         for f in afilters:
-            #FSConfigs.extend(prepareFilterFirstStageRun(t_msConfig, f, obs_dt, obs_var, int_var))
             prepareFilterFirstStageRun(t_msConfig, f, obs_dt, obs_var, int_var, FSConfigs)
 
-    FSConfigFile = open(t_msConfig.get('output', 'directory')+'first-stage-configs.dat', 'w')
-    #for fsc in FSConfigs:
-        #FSConfigFile.write(fsc+'\n')
-    for truthParameters in FSConfigs:
-        for filterParameters in FSConfigs[truthParameters]:
-            FSConfigFile.write(FSConfigs[truthParameters][filterParameters]+'\n')
+    FSConfigFile = open(t_msConfig.get('output', 'directory')+'firstStageConfigs.bin', 'wb')
+    p            = Pickler(FSConfigFile, protocol = -1)
+    p.dump(FSConfigs)
     FSConfigFile.close()
 
     return FSConfigs

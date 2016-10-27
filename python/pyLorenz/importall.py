@@ -208,7 +208,7 @@ def NewtonMinimiserFromConfig(t_config):
 
 def minimiser1DFromConfig(t_config):
     # build one-dimensional minimiser from config
-    minimiser_cls = t_config.get('assimilation', 'min1d_cls')
+    minimiser_cls = t_config.get('assimilation', 'min1d_class')
 
     # minimiser have different 'builder'-functions since they can have different parameters
     if minimiser_cls == 'GoldenSection':
@@ -278,7 +278,7 @@ def PFFromConfig(t_config, t_model, t_observation):
         return ASIRPF(filter_lbl, filter_int, t_observation, filter_Ns, resampler, trigger)
 
     elif filter_cls == 'oisirpf':
-        return OISIRPF(filter_lbl, filter_int, t_observation, filter_Ns, resampler, trigger)
+        return OISIRPF_diag(filter_lbl, filter_int, t_observation, filter_Ns, resampler, trigger)
 
 #__________________________________________________
 

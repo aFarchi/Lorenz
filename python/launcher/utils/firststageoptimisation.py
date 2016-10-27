@@ -137,7 +137,7 @@ def permutationFirstStageOptimisation(t_msConfig, t_filter, t_parameters):
         fixedParameters = []
         for parameter in t_parameters:
             fixedParameters.append(makeNumpyArray(eval(t_msConfig.get(t_filter, parameter))))
-        variable = fixedParameters.pop(index)
+        variable = fixedParameters.pop()
 
         def permutation(*args):
             return args
