@@ -21,20 +21,19 @@ class StochasticEnKF(AbstractEnKF):
 
     #_________________________
 
-    def __init__(self, t_label, t_integrator, t_observationOperator, t_Ns, t_covarianceInflation):
-        AbstractEnKF.__init__(self, t_label, t_integrator, t_observationOperator, t_Ns, t_covarianceInflation)
+    def __init__(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_label, t_Ns, t_outputFields, t_inflation):
+        AbstractEnKF.__init__(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_label, t_Ns, t_outputFields, t_inflation)
 
     #_________________________
 
-    def analyse(self, t_index, t_t, t_observation):
+    def analyse(self, t_t, t_observation):
         # analyse observation at time t
 
         # perturb observations
-        shape = (self.m_Ns, t_observation.size)
-        oe    = self.m_observationOperator.drawErrorSamples(t_t, shape)
-
-        # forecast
-        xf    = self.m_x[t_index]
+        oe    = self.m_observationOperator.drawErrorSamples(t_t, (self.m_Ns, t_observation.size))
+        # shortcut for forecast ensemble
+        xf    = self.m_x[self.m_integrationIndex]
+        # apply observation operator to forecast ensemble
         self.m_observationOperator.deterministicObserve(xf, t_t, self.m_Hxf)
 
         # Ensemble means

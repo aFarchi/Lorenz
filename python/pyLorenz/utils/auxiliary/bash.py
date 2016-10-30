@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 
 #__________________________________________________
-# pyLorenz/utils/bash/
+# pyLorenz/utils/auxiliary/
 # bash.py
 #__________________________________________________
 # author        : colonel
@@ -18,7 +18,6 @@ from subprocess import check_output
 
 def createDir(t_dir):
     # create directory
-    print('Making directory: '+t_dir)
     command = ['mkdir', '-p', t_dir]
     out     = check_output(command)
     if not out == '':

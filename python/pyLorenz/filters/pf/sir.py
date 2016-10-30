@@ -21,8 +21,9 @@ class SIRPF(AbstractEnsembleFilter):
 
     #_________________________
 
-    def __init__(self, t_label, t_integrator, t_observationOperator, t_Ns, t_resampler, t_resamplingTrigger):
-        AbstractEnsembleFilter.__init__(self, t_label, t_integrator, t_observationOperator, t_Ns)
+    def __init__(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_label, t_Ns, t_outputFields,
+            t_resampler, t_resamplingTrigger):
+        AbstractEnsembleFilter.__init__(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_label, t_Ns, t_outputFields)
         self.setSIRPFParameters(t_resampler, t_resamplingTrigger)
         self.setSIRPFTemporaryArrays()
 
@@ -42,8 +43,8 @@ class SIRPF(AbstractEnsembleFilter):
 
     #_________________________
 
-    def initialise(self, t_initialiser, t_sizeX, t_sizeDX):
-        AbstractEnsembleFilter.initialise(self, t_initialiser, t_sizeX, t_sizeDX)
+    def initialise(self):
+        AbstractEnsembleFilter.initialise(self)
         # relative weights in ln scale
         self.m_w         = - np.log(self.m_Ns) * np.ones(self.m_Ns)
         # Neff
@@ -60,9 +61,9 @@ class SIRPF(AbstractEnsembleFilter):
 
     #_________________________
 
-    def reweight(self, t_index, t_t, t_observation):
+    def reweight(self, t_t, t_observation):
         # first step of analyse : reweight ensemble according to observation weights
-        self.m_observationOperator.deterministicObserve(self.m_x[t_index], t_t, self.m_Hx)
+        self.m_observationOperator.deterministicObserve(self.m_x[self.m_integrationIndex], t_t, self.m_Hx)
         self.m_w += self.m_observationOperator.pdf(t_observation, self.m_Hx, t_t)
 
     #_________________________
@@ -75,40 +76,44 @@ class SIRPF(AbstractEnsembleFilter):
 
     #_________________________
 
-    def resample(self, t_index, t_t):
+    def resample(self, t_t):
         # third step of analyse : resample
         self.Neff()
         self.m_resampled = self.m_resamplingTrigger.trigger(self.m_Neff, t_t)
         if self.m_resampled:
-            (self.m_w, self.m_x[t_index]) = self.m_resampler.sample(self.m_Ns, self.m_w, self.m_x[t_index])
+            (self.m_w, self.m_x[self.m_integrationIndex]) = self.m_resampler.sample(self.m_Ns, self.m_w, self.m_x[self.m_integrationIndex])
             self.Neff()
 
     #_________________________
 
-    def analyse(self, t_index, t_t, t_observation):
+    def analyse(self, t_t, t_observation):
         # analyse observation at time t
-        self.reweight(t_index, t_t, t_observation)
+        self.reweight(t_t, t_observation)
         self.normaliseWeights()
-        self.resample(t_index, t_t)
+        self.resample(t_t)
 
     #_________________________
 
-    def estimate(self, t_index):
+    def estimate(self):
         # mean of x
-        return np.average(self.m_x[t_index], axis = -2, weights = np.exp(self.m_w))
+        self.m_estimation = np.average(self.m_x[self.m_integrationIndex], axis = -2, weights = np.exp(self.m_w))
 
     #_________________________
 
-    def writeForecast(self, t_output, t_iEnd):
-        AbstractEnsembleFilter.writeForecast(self, t_output, t_iEnd)
-        t_output.writeFilterForecastNeff(self.m_label, self.m_Neff)
+    def record(self, t_forecastOrAnalyse):
+        AbstractEnsembleFilter.record(self, t_forecastOrAnalyse)
+        # neff
+        self.m_output.record(self.m_label, t_forecastOrAnalyse+'_neff', self.m_Neff)
 
     #_________________________
 
-    def writeAnalyse(self, t_output, t_iEnd):
-        AbstractEnsembleFilter.writeAnalyse(self, t_output, t_iEnd)
-        t_output.writeFilterAnalyseNeff(self.m_label, self.m_Neff)
-        t_output.writeFilterAnalyseResampled(self.m_label, self.m_resampled)
+    def recordAnalyse(self):
+        AbstractEnsembleFilter.recordAnalyse(self)
+        # resampling
+        out = 0.0
+        if self.m_resampled:
+            out = 1.0
+        self.m_output.record(self.m_label, 'analyse_resampled', out)
 
 #__________________________________________________
 

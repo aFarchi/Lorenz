@@ -21,16 +21,16 @@ class AbstractEnKF(AbstractEnsembleFilter):
 
     #_________________________
 
-    def __init__(self, t_label, t_integrator, t_observationOperator, t_Ns, t_covarianceInflation):
-        AbstractEnsembleFilter.__init__(self, t_label, t_integrator, t_observationOperator, t_Ns)
-        self.setAbstractEnKFParameters(t_covarianceInflation)
+    def __init__(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_label, t_Ns, t_outputFields, t_inflation):
+        AbstractEnsembleFilter.__init__(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_label, t_Ns, t_outputFields)
+        self.setAbstractEnKFParameters(t_inflation)
         self.setAbstractEnKFTemporaryArrays()
 
     #_________________________
 
-    def setAbstractEnKFParameters(self, t_covarianceInflation):
-        # covariance inflation
-        self.m_covarianceInflation = t_covarianceInflation
+    def setAbstractEnKFParameters(self, t_inflation):
+        # inflation
+        self.m_inflation = t_inflation
 
     #_________________________
 
@@ -40,17 +40,16 @@ class AbstractEnKF(AbstractEnsembleFilter):
 
     #_________________________
 
-    def computeAnalysePerformance(self, t_xt, t_iEnd):
-        AbstractEnsembleFilter.computeAnalysePerformance(self, t_xt, t_iEnd)
-
+    def computeAnalysePerformance(self, t_xt):
+        AbstractEnsembleFilter.computeAnalysePerformance(self, t_xt)
         # also apply inflation around the ensemble mean
-        self.m_x[t_iEnd] = self.m_estimation + self.m_covarianceInflation * ( self.m_x[t_iEnd] - self.m_estimation )
+        self.m_x[self.m_integrationIndex] = self.m_estimation + self.m_inflation * ( self.m_x[self.m_integrationIndex] - self.m_estimation )
 
     #_________________________
 
-    def estimate(self, t_index):
+    def estimate(self):
         # mean of x
-        return self.m_x[t_index].mean(axis = -2)
+        self.m_estimation = self.m_x[self.m_integrationIndex].mean(axis = -2)
 
 #__________________________________________________
 

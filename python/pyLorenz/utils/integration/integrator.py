@@ -45,36 +45,25 @@ class DeterministicIntegrator(object):
         # integrate x from tStart to step tEnd
         # first dimension (time) of x must have size at least equal to 1 + ( t_ntEnd - t_ntStart ) * self.m_nIntSStep
         # first dimension (time) of dx (working array) must have size at least equal to 1 + self.m_nIntSStep
+        #
+        # return the index of x at time tEnd
         Nt = np.rint( ( t_tEnd - t_tStart ) / self.m_dt ).astype(int)
         for nt in range(Nt):
             self.m_integrationStep.deterministicIntegrate(t_x[nt*self.m_nIntSStep:(nt+1)*self.m_nIntSStep+1], t_tStart+nt*self.m_dt, t_dx)
+        return Nt * self.m_nIntSStep
 
     #_________________________
 
     def integrate(self, t_x, t_tStart, t_tEnd, t_dx):
         # call deterministicIntegrate() method
-        self.deterministicIntegrate(t_x, t_tStart, t_tEnd, t_dx)
+        return self.deterministicIntegrate(t_x, t_tStart, t_tEnd, t_dx)
 
     #_________________________
 
-    def iArrayMaxSize(self, t_times):
-        # maximum size of the integration arrays to integrate between times
-        longestCycle = np.diff(t_times).max()
-        longestCycle = np.rint( longestCycle / self.m_dt ).astype(int)
-        return ( longestCycle * self.m_nIntSStep + 1 , self.m_nIntSStep )
-
-    #_________________________
-
-    def indexTEnd(self, t_tStart, t_tEnd):
-        # return index of x at time tEnd for an array containing x that have been integrated from tStart to tEnd
-        return np.rint( ( t_tEnd - t_tStart ) / self.m_dt ).astype(int) * self.m_nIntSStep
-
-    #_________________________
-
-    def basicStochasticIntegrator(self):
-        # constructs a basic stochastic integrator that has the same integration step
-        # you may then want to change the error generator of the integration step
-        return BasicStochasticIntegrator(self.m_integrationStep)
+    def maximumIntegrationSubStepsPerCycle(self, t_longestCycle):
+        # maximum number of integration sub steps for a given longest integration cycle
+        nInt = np.rint(t_longestCycle/self.m_dt).astype(int)
+        return (nInt*self.m_nIntSStep+1, self.m_nIntSStep)
 
 #__________________________________________________
 
@@ -92,6 +81,7 @@ class StochasticIntegrator(DeterministicIntegrator):
         Nt = np.rint( ( t_tEnd - t_tStart ) / self.m_dt ).astype(int)
         for nt in range(Nt):
             self.m_integrationStep.stochasticIntegrate(t_x[nt*self.m_nIntSStep:(nt+1)*self.m_nIntSStep+1], t_tStart+nt*self.m_dt, t_dx)
+        return Nt * self.m_nIntSStep
 
 #__________________________________________________
 
@@ -105,12 +95,11 @@ class BasicStochasticIntegrator(DeterministicIntegrator):
     #_________________________
 
     def integrate(self, t_x, t_tStart, t_tEnd, t_dx):
-        # add random error only at the end of the process with some trick
-        self.deterministicIntegrate(t_x, t_tStart, t_tEnd, t_dx)
-        dt      = t_tEnd - t_tStart
-        i       = self.indexTEnd(t_tStart, t_tEnd)
-        # trick
-        t_x[i] += self.m_integrationStep.m_errorGenerator.drawSamples(t_tStart, t_x[i].shape, np.sqrt(dt))
+        # add random error only at the end of the process
+        index       = self.deterministicIntegrate(t_x, t_tStart, t_tEnd, t_dx)
+        dt          = t_tEnd - t_tStart
+        t_x[index] += self.m_integrationStep.m_errorGenerator.drawSamples(t_tStart, t_x[index].shape, np.sqrt(dt))
+        return index
 
     #_________________________
 

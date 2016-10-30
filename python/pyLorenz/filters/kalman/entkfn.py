@@ -22,8 +22,9 @@ class EnTKF_N_dual(AbstractEnKF):
 
     #_________________________
 
-    def __init__(self, t_label, t_integrator, t_observationOperator, t_Ns, t_covarianceInflation, t_minimiser, t_epsilon, t_maxZeta, t_U = None):
-        AbstractEnKF.__init__(self, t_label, t_integrator, t_observationOperator, t_Ns, t_covarianceInflation)
+    def __init__(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_label, t_Ns, t_outputFields, t_inflation,
+            t_minimiser, t_epsilon, t_maxZeta, t_U = None):
+        AbstractEnKF.__init__(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_label, t_Ns, t_outputFields, t_inflation)
         self.setEnTKF_N_dualParameters(t_minimiser, t_epsilon, t_maxZeta, t_U)
 
     #_________________________
@@ -43,11 +44,12 @@ class EnTKF_N_dual(AbstractEnKF):
 
     #_________________________
 
-    def analyse(self, t_index, t_t, t_observation):
+    def analyse(self, t_t, t_observation):
         # analyse observation at time t
 
-        # shortcut
-        xf    = self.m_x[t_index]
+        # shortcut for forecast ensemble
+        xf    = self.m_x[self.m_integrationIndex]
+        # apply observation operator to forecast ensemble
         self.m_observationOperator.deterministicObserve(xf, t_t, self.m_Hxf)
 
         # Ensemble means
@@ -86,7 +88,7 @@ class EnTKF_N_dual(AbstractEnKF):
         Xa                 = np.dot( self.m_U , np.dot( U / np.sqrt( diagonal ) , np.transpose(U) ) )
 
         # update
-        self.m_x[t_index]  = xf_m + np.dot( wa + np.sqrt( self.m_Ns - 1.0 ) * Xa , Xf )
+        self.m_x[self.m_integrationIndex] = xf_m + np.dot( wa + np.sqrt( self.m_Ns - 1.0 ) * Xa , Xf )
 
 #__________________________________________________
 

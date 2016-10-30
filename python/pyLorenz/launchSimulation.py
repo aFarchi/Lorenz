@@ -11,15 +11,12 @@
 # Launcher for a simulation
 #
 
-from importall    import *
-from ConfigParser import SafeConfigParser
+from configuration import Configuration
 
-# Read configuration
-configFileNames = configFileNamesFromCommand()
-config          = SafeConfigParser()
-config.read(configFileNames)
-
-# Simulation
-simulation = simulationFromConfig(config)
+# configuration from file
+configuration = Configuration()
+# simulation
+simulation    = configuration.buildSimulation()
+# run
 simulation.run()
 
