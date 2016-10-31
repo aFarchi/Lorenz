@@ -42,7 +42,7 @@ from observations.observealloperator                 import ObserveAllOperator
 from observations.regularobservationtimes            import RegularObservationTimes
 
 from simulation.truth                                import Truth
-from simulation.run                                  import Simulation
+from simulation.simulation                           import Simulation
 
 from filters.kalman.stochasticenkf                   import StochasticEnKF
 from filters.kalman.entkf                            import EnTKF
@@ -59,7 +59,7 @@ def filterClassHierarchy():
     fch                = {}
     fch['EnF']         = {}
     fch['EnF']['EnKF'] = ['senkf', 'entkf', 'entkfn-dual', 'entkfn-dual-capped']
-    fch['EnF']['PF']   = ['sir', 'asir', 'oisir']
+    fch['EnF']['PF']   = ['sirpf', 'asirpf', 'oisirpf']
     return fch
 
 #__________________________________________________
@@ -293,9 +293,9 @@ class Configuration(object):
         minimiser_cls = self.getString('assimilation', t_prefix+'_class')
         # note: minimiser have different 'builder'-functions since they can have different parameters
         if minimiser_cls == 'GoldenSection':
-            return GoldenSectionMinimiser(self, t_prefix)
+            return self.GoldenSectionMinimiser(t_prefix)
         elif minimiser_cls == 'Newton':
-            return NewtonMinimiser(self, t_prefix)
+            return self.NewtonMinimiser(t_prefix)
 
     #_________________________
 
@@ -345,7 +345,7 @@ class Configuration(object):
     def PF(self, t_class, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_Ns, t_outputFields):
         # build PF
         filter_rt  = self.getFloat('assimilation', 'resampling_thr')
-        filter_jit = self.getFloat('filter', 'integration_jitter')
+        filter_jit = self.getFloat('assimilation', 'integration_jitter')
         filter_lbl = PFLabel(t_class, t_Ns, filter_rt, filter_jit)
 
         resampler  = self.resampler()
@@ -411,8 +411,13 @@ class Configuration(object):
         filterIntegrator    = self.integrator('filter', model)
         # filter
         filter              = self.filter(initialiser, filterIntegrator, observationOperator, observationTimes, output)
+        # random seed
+        try:
+            randomSeed      = self.getInt('random', 'seed')
+        except:
+            randomSeed      = None
         # simulation
-        self.m_simulation   = Simulation(truth, filter, output, observationTimes)
+        self.m_simulation   = Simulation(truth, filter, output, observationTimes, randomSeed)
         return self.m_simulation
 
 #__________________________________________________
