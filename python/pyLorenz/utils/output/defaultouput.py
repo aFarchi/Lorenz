@@ -12,6 +12,8 @@
 # RMSE and estimation are writte
 #
 
+import numpy as np
+
 from onlyrmseoutput import OnlyRMSEOutput
 
 #__________________________________________________
@@ -20,8 +22,8 @@ class DefaultOutput(OnlyRMSEOutput):
 
     #_________________________
 
-    def __init__(self, t_printCycleTrigger, t_outputDir):
-        OnlyRMSEOutput.__init__(self, t_printCycleTrigger, t_outputDir)
+    def __init__(self, t_printCycleTrigger, t_outputDir, t_nw):
+        OnlyRMSEOutput.__init__(self, t_printCycleTrigger, t_outputDir, t_nw)
 
     #_________________________
 

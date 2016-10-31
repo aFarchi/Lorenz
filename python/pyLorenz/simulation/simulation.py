@@ -13,6 +13,7 @@
 
 import numpy as np
 from itertools import chain
+import numpy.random as rnd
 
 #__________________________________________________
 
@@ -20,12 +21,12 @@ class Simulation(object):
 
     #_________________________
 
-    def __init__(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output):
-        self.setSimulationParameters(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output)
+    def __init__(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_randomSeed):
+        self.setSimulationParameters(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_randomSeed)
 
     #_________________________
 
-    def setSimulationParameters(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output):
+    def setSimulationParameters(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_randomSeed):
         # initialiser
         self.m_initialiser         = t_initialiser
         # integration
@@ -36,6 +37,8 @@ class Simulation(object):
         self.m_observationTimes    = t_observationTimes
         # simulation output
         self.m_output              = t_output
+        # random seed
+        self.m_randomSeed          = t_randomSeed
 
         # filters
         self.m_filters             = []
@@ -55,6 +58,7 @@ class Simulation(object):
     #_________________________
 
     def initialise(self):
+        rnd.seed(self.m_randomSeed)
         # truth
         self.m_xt    = np.zeros((self.m_sx, self.m_spaceDimension))
         self.m_dxt   = np.zeros((self.m_sdx, self.m_spaceDimension))

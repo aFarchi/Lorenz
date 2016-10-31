@@ -303,6 +303,12 @@ def simulationFromConfig(t_config):
     xDimension       = int(eval(t_config.get('dimensions', 'state')))
     yDimension       = int(eval(t_config.get('dimensions', 'observation')))
 
+    # random seed
+    try:
+        rseed        = int(eval(t_config.get('random', 'seed')))
+    except:
+        rseed        = None
+
     # initialiser
     initialiser      = initialiserFromConfig(t_config)
 
@@ -323,7 +329,7 @@ def simulationFromConfig(t_config):
     assimilation     = filterFromConfig(t_config, model, observation)
 
     # simulation
-    simulation       = Simulation(initialiser, integrator, observation, observationTimes, output)
+    simulation       = Simulation(initialiser, integrator, observation, observationTimes, output, rseed)
     simulation.addFilter(assimilation)
 
     return simulation
