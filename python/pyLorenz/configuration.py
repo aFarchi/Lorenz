@@ -5,7 +5,7 @@
 # configuration.py
 #__________________________________________________
 # author        : colonel
-# last modified : 2016/10/30
+# last modified : 2016/11/1
 #__________________________________________________
 #
 # configuration for a simulation
@@ -13,6 +13,7 @@
 
 import numpy as np
 
+from numpy.random                                    import RandomState
 from ConfigParser                                    import SafeConfigParser
 
 from utils.auxiliary.bash                            import configFileNamesFromCommand
@@ -69,22 +70,6 @@ def transformedFilterClassHierarchy():
     # each key is now a filter class
     # and is associated with its inheritance hierarchy
     return makeKeyListDict(filterClassHierarchy())
-
-#__________________________________________________
-
-def EnKFLabel(t_flavor, t_Ns, t_inflation, t_jitter):
-    return ( t_flavor +
-            '_' + str(t_Ns) +
-            '_' + str(t_inflation).replace('.', 'p') +
-            '_' + str(t_jitter).replace('.', 'p') )
-
-#__________________________________________________
-
-def PFLabel(t_flavor, t_Ns, t_resampling_thr, t_jitter):
-    return ( t_flavor +
-            '_' + str(t_Ns) +
-            '_' + str(t_resampling_thr).replace('.', 'p') +
-            '_' + str(t_jitter).replace('.', 'p') )
 
 #__________________________________________________
 
@@ -160,11 +145,32 @@ class Configuration(object):
 
     #_________________________
 
-    def initialiser(self):
+    def rng(self):
+        # build random number generators
+        try:
+            seed   = self.getInt('random', 'initialiser_seed')
+        except:
+            seed   = None
+        init_rng   = RandomState(seed)
+        try:
+            seed   = self.getInt('random', 'truth_seed')
+        except:
+            seed   = None
+        truth_rng  = RandomState(seed)
+        try:
+            seed   = self.getInt('random', 'filter_seed')
+        except:
+            seed   = None
+        filter_rng = RandomState(seed)
+        return [init_rng, truth_rng, filter_rng]
+
+    #_________________________
+
+    def initialiser(self, t_rng):
         # build initialiser
         initialiser_truth = self.getNPArray('initialisation', 'truth')
-        initialiser_std   = np.sqrt(self.getFloat('initialisation', 'variance')) * np.ones(initialiser_truth.size)
-        initialiser_eg    = IndependantGaussianErrorGenerator(initialiser_std)
+        initialiser_std   = np.sqrt(self.getFloat('initialisation', 'variance')) * np.ones(self.getInt('dimensions', 'state'))
+        initialiser_eg    = IndependantGaussianErrorGenerator(initialiser_std, t_rng)
         return RandomInitialiser(initialiser_truth, initialiser_eg)
 
     #_________________________
@@ -186,7 +192,7 @@ class Configuration(object):
 
     #_________________________
 
-    def integrator(self, t_truthOrFilter, t_model):
+    def integrator(self, t_truthOrFilter, t_model, t_rng):
         # build integrator
         integrator_dt  = self.getFloat('integration', 'dt')
         integrator_stc = self.getString('integration', 'step')
@@ -203,7 +209,7 @@ class Configuration(object):
             integrator_eg  = None
         else:
             integrator_std = np.sqrt(integrator_var) * np.ones(self.getInt('dimensions', 'state'))
-            integrator_eg  = IndependantGaussianErrorGenerator(integrator_std)
+            integrator_eg  = IndependantGaussianErrorGenerator(integrator_std, t_rng)
 
         # integration step
         if integrator_stc == 'EulerExpl':
@@ -225,11 +231,11 @@ class Configuration(object):
 
     #_________________________
 
-    def observationOperator(self):
+    def observationOperator(self, t_rng):
         # build observation operator
         observation_var = self.getFloat('observation-operator', 'variance')
         observation_std = np.sqrt(observation_var) * np.ones(self.getInt('dimensions', 'observations'))
-        observation_eg  = IndependantGaussianErrorGenerator(observation_std)
+        observation_eg  = IndependantGaussianErrorGenerator(observation_std, t_rng)
         observation_cls = self.getString('observation-operator', 'class')
         if observation_cls == 'ObserveAll':
             return ObserveAllOperator(observation_eg)
@@ -259,15 +265,15 @@ class Configuration(object):
         output_dir = self.getString('output', 'directory')
         output_mw  = self.getInt('output', 'modWrite')
         output_mp  = self.getInt('output', 'modPrint')
-        return Output(output_dir, output_mw, output_mp)
+        output_lbl = self.getString('output', 'label')
+        return Output(output_dir, output_mw, output_mp, output_lbl)
 
     #_________________________
 
     def truth(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output):
         # build truth
-        truthOutput        = self.getStringList('output', 'truth')
-        observationsOutput = self.getStringList('output', 'observations')
-        return Truth(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, truthOutput, observationsOutput)
+        truthOutputFields = self.getStringList('truth', 'output')
+        return Truth(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, truthOutputFields)
 
     #_________________________
 
@@ -291,7 +297,6 @@ class Configuration(object):
     def minimiser(self, t_prefix):
         # build minimiser from config
         minimiser_cls = self.getString('assimilation', t_prefix+'_class')
-        # note: minimiser have different 'builder'-functions since they can have different parameters
         if minimiser_cls == 'GoldenSection':
             return self.GoldenSectionMinimiser(t_prefix)
         elif minimiser_cls == 'Newton':
@@ -299,30 +304,28 @@ class Configuration(object):
 
     #_________________________
 
-    def resampler(self):
+    def resampler(self, t_rng):
         # build resampler from config
         resampler_cls = self.getString('assimilation', 'resampler')
         if resampler_cls == 'StochasticUniversal':
-            return StochasticUniversalResampler()
+            return StochasticUniversalResampler(t_rng)
         elif resampler_cls == 'Direct':
-            return DirectResampler()
+            return DirectResampler(t_rng)
 
     #_________________________
 
-    def EnKF(self, t_class, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_Ns, t_outputFields):
+    def EnKF(self, t_class, t_label, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_Ns, t_outputFields, t_rng):
         # build EnKF
         filter_ifl = self.getFloat('assimilation', 'inflation')
-        filter_jit = self.getFloat('assimilation', 'integration_jitter')
-        filter_lbl = EnKFLabel(t_class, t_Ns, filter_ifl, filter_jit)
 
         if t_class == 'senkf':
             return StochasticEnKF(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output,
-                    filter_lbl, t_Ns, t_outputFields, filter_ifl)
+                    t_label, t_Ns, t_outputFields, filter_ifl)
 
         elif t_class == 'entkf':
             U = np.eye(t_Ns)
             return EnTKF(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output,
-                    filter_lbl, t_Ns, t_outputFields, filter_ifl, U)
+                    t_label, t_Ns, t_outputFields, filter_ifl, U)
 
         elif t_class == 'entkfn-dual-capped':
             U         = np.eye(t_Ns)
@@ -330,7 +333,7 @@ class Configuration(object):
             maxZeta   = t_Ns - 1.0 
             minimiser = self.minimiser('minimiser_1d')
             return EnTKF_N_dual(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output,
-                    filter_lbl, t_Ns, t_outputFields, filter_ifl, minimiser, epsilon, maxZeta, U)
+                    t_label, t_Ns, t_outputFields, filter_ifl, minimiser, epsilon, maxZeta, U)
 
         elif t_class == 'entkfn-dual':
             U         = np.eye(t_Ns)
@@ -338,86 +341,82 @@ class Configuration(object):
             maxZeta   = float(t_Ns)
             minimiser = self.minimiser('minimiser_1d')
             return EnTKF_N_dual(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output,
-                    filter_lbl, t_Ns, t_outputFields, filter_ifl, minimiser, epsilon, maxZeta, U)
+                    t_label, t_Ns, t_outputFields, filter_ifl, minimiser, epsilon, maxZeta, U)
 
     #_________________________
 
-    def PF(self, t_class, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_Ns, t_outputFields):
+    def PF(self, t_class, t_label, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_Ns, t_outputFields, t_rng):
         # build PF
         filter_rt  = self.getFloat('assimilation', 'resampling_thr')
-        filter_jit = self.getFloat('assimilation', 'integration_jitter')
-        filter_lbl = PFLabel(t_class, t_Ns, filter_rt, filter_jit)
 
-        resampler  = self.resampler()
+        resampler  = self.resampler(t_rng)
         trigger    = ThresholdTrigger(filter_rt)
 
         if t_class == 'sirpf':
             return SIRPF(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, 
-                    filter_lbl, t_Ns, t_outputFields, resampler, trigger)
+                    t_label, t_Ns, t_outputFields, resampler, trigger)
 
         elif t_class == 'asirpf':
             return ASIRPF(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, 
-                    filter_lbl, t_Ns, t_outputFields, resampler, trigger)
+                    t_label, t_Ns, t_outputFields, resampler, trigger)
 
         elif t_class == 'oisirpf':
             return OISIRPF_diag(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, 
-                    filter_lbl, t_Ns, t_outputFields, resampler, trigger)
+                    t_label, t_Ns, t_outputFields, resampler, trigger, t_rng)
 
     #_________________________
 
-    def EnF(self, t_classInh, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output):
+    def EnF(self, t_classInh, t_label, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_rng):
         # build EnF
         filter_Ns  = self.getInt('assimilation', 'Ns')
         filter_out = self.getStringList('assimilation', 'output')
         filter_cls = t_classInh.pop()
 
         if filter_cls == 'EnKF':
-            return self.EnKF(t_classInh[0], t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, filter_Ns, filter_out)
+            return self.EnKF(t_classInh[0], t_label, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, filter_Ns, filter_out, t_rng)
         elif filter_cls == 'PF':
-            return self.PF(t_classInh[0], t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, filter_Ns, filter_out)
+            return self.PF(t_classInh[0], t_label, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, filter_Ns, filter_out, t_rng)
 
     #_________________________
 
-    def filter(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output):
+    def filter(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_rng):
         # build filter
-        fch        = transformedFilterClassHierarchy()
         filter_cls = self.getString('assimilation', 'filter')
+        filter_lbl = self.getString('assimilation', 'label')
         fch        = transformedFilterClassHierarchy()
         filter_inh = fch[filter_cls]
 
         top_cls    = filter_inh.pop()
         if top_cls == 'EnF':
-            return self.EnF(filter_inh, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output)
+            return self.EnF(filter_inh, filter_lbl, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_rng)
 
     #_________________________
 
     def buildSimulation(self):
         # build simulation
+        rngs                = self.rng()
         # initialiser
-        initialiser         = self.initialiser()
+        initialiser         = self.initialiser(rngs[0])
         # model
         model               = self.model()
-        # observation operator
-        observationOperator = self.observationOperator()
+        # observation operator (with truth rng)
+        observationOperator = self.observationOperator(rngs[1])
         # observation times
         observationTimes    = self.observationTimes()
         # output
         output              = self.output()
         # truth integrator
-        truthIntegrator     = self.integrator('truth', model)
+        truthIntegrator     = self.integrator('truth', model, rngs[1])
         # truth
         truth               = self.truth(initialiser, truthIntegrator, observationOperator, observationTimes, output)
+        # observation operator (with filter rng)
+        observationOperator = self.observationOperator(rngs[2])
         # filter integrator
-        filterIntegrator    = self.integrator('filter', model)
+        filterIntegrator    = self.integrator('filter', model, rngs[2])
         # filter
-        filter              = self.filter(initialiser, filterIntegrator, observationOperator, observationTimes, output)
-        # random seed
-        try:
-            randomSeed      = self.getInt('random', 'seed')
-        except:
-            randomSeed      = None
+        filter              = self.filter(initialiser, filterIntegrator, observationOperator, observationTimes, output, rngs[2])
         # simulation
-        self.m_simulation   = Simulation(truth, filter, output, observationTimes, randomSeed)
+        self.m_simulation   = Simulation(truth, filter, output, observationTimes)
         return self.m_simulation
 
 #__________________________________________________

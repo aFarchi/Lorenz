@@ -2,10 +2,10 @@
 
 #__________________________________________________
 # pyLorenz/
-# launchSimulation.py
+# launcher.py
 #__________________________________________________
 # author        : colonel
-# last modified : 2016/10/20
+# last modified : 2016/11/1
 #__________________________________________________
 #
 # Launcher for a simulation

@@ -5,7 +5,7 @@
 # bash.py
 #__________________________________________________
 # author        : colonel
-# last modified : 2016/10/26
+# last modified : 2016/11/1
 #__________________________________________________
 #
 # bash utils
@@ -21,7 +21,6 @@ from subprocess   import call
 
 def createDir(t_dir):
     # create directory
-    print('Making directory: '+t_dir)
     command = ['mkdir', '-p', t_dir]
     out     = check_output(command)
     if not out == '':
@@ -31,7 +30,6 @@ def createDir(t_dir):
 
 def removeDir(t_dir):
     # remove directory
-    print('Removing directory: '+t_dir)
     command = ['rm', '-rf', t_dir]
     out     = check_output(command)
     if not out == '':

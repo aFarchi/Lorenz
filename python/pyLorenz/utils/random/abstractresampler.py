@@ -19,8 +19,14 @@ class AbstractResampler(object):
 
     #_________________________
 
-    def __init__(self):
-        pass
+    def __init__(self, t_rng):
+        self.setAbstractResamplerParameters(t_rng)
+
+    #_________________________
+
+    def setAbstractResamplerParameters(self, t_rng):
+        # random number generator
+        self.m_rng = t_rng
 
     #_________________________
 

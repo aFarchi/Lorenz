@@ -12,7 +12,6 @@
 #
 
 import numpy as np
-import numpy.random as rnd
 
 from abstractresampler import AbstractResampler
 
@@ -22,8 +21,8 @@ class StochasticUniversalResampler(AbstractResampler):
 
     #_________________________
 
-    def __init__(self):
-        AbstractResampler.__init__(self)
+    def __init__(self, t_rng):
+        AbstractResampler.__init__(self, t_rng)
 
     #_________________________
 
@@ -34,7 +33,7 @@ class StochasticUniversalResampler(AbstractResampler):
         wc  = np.exp(t_w).cumsum()
 
         # draw random number in [0,1/t_Ns]
-        cursor = rnd.rand() * wc[-1] / t_Ns
+        cursor = self.m_rng.rand() * wc[-1] / t_Ns
         sample = 0
 
         for ns in np.arange(t_Ns):

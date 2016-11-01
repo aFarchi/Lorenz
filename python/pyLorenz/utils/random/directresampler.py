@@ -12,7 +12,6 @@
 #
 
 import numpy as np
-import numpy.random as rnd
 
 from abstractresampler import AbstractResampler
 
@@ -22,8 +21,8 @@ class DirectResampler(AbstractResampler):
 
     #_________________________
 
-    def __init__(self):
-        AbstractResampler.__init__(self)
+    def __init__(self, t_rng):
+        AbstractResampler.__init__(self, t_rng)
 
     #_________________________
 
@@ -35,7 +34,7 @@ class DirectResampler(AbstractResampler):
 
         for ns in np.arange(t_Ns):
             # search for particle to duplicate
-            cursor = rnd.rand() * wc[-1]
+            cursor = self.m_rng.rand() * wc[-1]
             sample = 0
             while wc[sample] < cursor:
                 sample += 1

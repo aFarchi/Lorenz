@@ -12,8 +12,7 @@
 # when error covariance matrix is diagonal
 #
 
-import numpy        as np
-import numpy.random as rnd
+import numpy as np
 
 #__________________________________________________
 
@@ -21,18 +20,20 @@ class IndependantGaussianErrorGenerator(object):
 
     #_________________________
 
-    def __init__(self, t_stdDev):
-        self.setIndependantGaussianRNGParameters(t_stdDev)
+    def __init__(self, t_stdDev, t_rng):
+        self.setIndependantGaussianRNGParameters(t_stdDev, t_rng)
 
     #_________________________
 
-    def setIndependantGaussianRNGParameters(self, t_stdDev):
+    def setIndependantGaussianRNGParameters(self, t_stdDev, t_rng):
         # space dimension
         self.m_spaceDimension = t_stdDev.size
         # standard deviation (expected as a one dimensional array)
         self.m_stdDev         = t_stdDev
         # performance tweak: compute variance once and for all
         self.m_sigma          = t_stdDev * t_stdDev
+        # random number generator
+        self.m_rng            = t_rng
 
     #_________________________
 
@@ -41,7 +42,7 @@ class IndependantGaussianErrorGenerator(object):
         # result is expected to have the specified shape 
         # (which must be compatible with self.m_stdDev.size, i.e shape[-1] == self.m_stdDev.size)
         # note: the standard deviation of the error is inflated by a factor inflation
-        return ( t_inflation * self.m_stdDev ) * rnd.standard_normal(t_shape)
+        return ( t_inflation * self.m_stdDev ) * self.m_rng.standard_normal(t_shape)
 
     #_________________________
 

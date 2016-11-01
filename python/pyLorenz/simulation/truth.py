@@ -19,41 +19,42 @@ class Truth(object):
 
     #_________________________
 
-    def __init__(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_truthOutputFields, t_observationsOutputFields):
-        self.setTruthParameters(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_truthOutputFields, t_observationsOutputFields)
+    def __init__(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_truthOutputFields):
+        self.setTruthParameters(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_truthOutputFields)
 
     #_________________________
 
-    def setTruthParameters(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_truthOutputFields, t_observationsOutputFields):
+    def setTruthParameters(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_truthOutputFields):
         # initialiser
-        self.m_initialiser              = t_initialiser
+        self.m_initialiser         = t_initialiser
         # integrator
-        self.m_integrator               = t_integrator
+        self.m_integrator          = t_integrator
         # observation operator
-        self.m_observationOperator      = t_observationOperator
+        self.m_observationOperator = t_observationOperator
         # observation times
-        self.m_observationTimes         = t_observationTimes
+        self.m_observationTimes    = t_observationTimes
         # output
-        self.m_output                   = t_output
+        self.m_output              = t_output
         # truth output fields
-        self.m_truthOutputFields        = t_truthOutputFields
-        # observations output fields
-        self.m_observationsOutputFields = t_observationsOutputFields
+        self.m_truthOutputFields   = t_truthOutputFields
         # x, y space dimension
-        self.m_xSpaceDimension          = t_integrator.m_spaceDimension
-        self.m_ySpaceDimension          = t_observationOperator.m_spaceDimension
+        self.m_xSpaceDimension     = t_integrator.m_spaceDimension
+        self.m_ySpaceDimension     = t_observationOperator.m_spaceDimension
         # index of current truth state
-        self.m_integrationIndex         = 0
+        self.m_integrationIndex    = 0
+        # time
+        self.m_time                = 0.0
 
     #_________________________
 
-    def temporaryRecordShape(self, t_nRecord, t_truthOrObservations, t_field):
+    def temporaryRecordShape(self, t_nRecord, t_field):
         # shape for temporary array recording the given field
         if t_field == 'trajectory':
-            if t_truthOrObservations == 'truth':
-                return (t_nRecord, self.m_xSpaceDimension)
-            elif t_truthOrObservations == 'observations':
-                return (t_nRecord, self.m_ySpaceDimension)
+            return (t_nRecord, self.m_xSpaceDimension)
+        elif t_field == 'observations':
+            return (t_nRecord, self.m_ySpaceDimension)
+        elif t_field == 'time':
+            return (t_nRecord, 0)
         return (t_nRecord, 0)
 
     #_________________________
@@ -80,7 +81,7 @@ class Truth(object):
         # initialise truth
         self.m_initialiser.initialiseTruth(self.m_x[self.m_integrationIndex])
         # initialise output
-        self.m_output.initialiseTruthOutput(self.m_truthOutputFields, self.m_observationsOutputFields, self.temporaryRecordShape)
+        self.m_output.initialiseTruthOutput(self.m_truthOutputFields, self.temporaryRecordShape)
 
     #_________________________
 
@@ -89,6 +90,8 @@ class Truth(object):
         self.m_integrationIndex = self.m_integrator.integrate(self.m_x, t_tStart, t_tEnd, self.m_dx)
         # observe truth
         self.m_observationOperator.observe(self.m_x[self.m_integrationIndex], t_tEnd, self.m_y)
+        # record time
+        self.m_time = t_tEnd
 
     #_________________________
 
@@ -100,10 +103,12 @@ class Truth(object):
     #_________________________
 
     def record(self):
-        # record truth
+        # trajectory
         self.m_output.record('truth', 'trajectory', self.m_x[self.m_integrationIndex])
-        # record observation
-        self.m_output.record('observations', 'trajectory', self.m_y)
+        # observation
+        self.m_output.record('truth', 'observations', self.m_y)
+        # time
+        self.m_output.record('truth', 'time', self.m_time)
 
 #__________________________________________________
 

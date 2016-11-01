@@ -12,7 +12,6 @@
 #
 
 import numpy as np
-import numpy.random as rnd
 
 from sir import SIRPF
 
@@ -23,9 +22,16 @@ class OISIRPF_diag(SIRPF):
     #_________________________
 
     def __init__(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_label, t_Ns, t_outputFields,
-            t_resampler, t_resamplingTrigger):
+            t_resampler, t_resamplingTrigger, t_rng):
         SIRPF.__init__(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_label, t_Ns, t_outputFields,
                 t_resampler, t_resamplingTrigger)
+
+
+    #_________________________
+
+    def setOISIRPF_diagParameters(self, t_rng):
+        # random number generator
+        self.m_rng = t_rng
 
     #_________________________
 
@@ -53,7 +59,7 @@ class OISIRPF_diag(SIRPF):
         mean_p  = sigma_p * ( ( 1.0 / sigma_m ) * fx + H * ( 1.0 / sigma_o ) * y )
 
         # draw x at tEnd from proposal
-        self.m_x[self.m_integrationIndex] = mean_p + np.sqrt(sigma_p) * rnd.standard_normal(self.m_x[self.m_integrationIndex].shape)
+        self.m_x[self.m_integrationIndex] = mean_p + np.sqrt(sigma_p) * self.m_rng.standard_normal(self.m_x[self.m_integrationIndex].shape)
 
         # reweight ensemble to account for proposal
 
@@ -128,7 +134,7 @@ class OISIRPF(SIRPF):
         mean_p  = sigma_p * ( ( 1.0 / sigma_m ) * fx + H * ( 1.0 / sigma_o ) * y )
 
         # draw x at tEnd from proposal
-        self.m_x[iEnd] = mean_p + np.sqrt(sigma_p) * rnd.standard_normal(self.m_x[iEnd].shape)
+        self.m_x[iEnd] = mean_p + np.sqrt(sigma_p) * self.m_rng.standard_normal(self.m_x[iEnd].shape)
 
         # reweight ensemble to account for proposal
 

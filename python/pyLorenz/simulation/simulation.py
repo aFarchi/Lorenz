@@ -12,7 +12,6 @@
 #
 
 import random 
-import numpy.random as rnd
 
 #__________________________________________________
 
@@ -20,12 +19,12 @@ class Simulation(object):
 
     #_________________________
 
-    def __init__(self, t_truth, t_filter, t_output, t_observationTimes, t_randomSeed):
-        self.setSimulationParameters(t_truth, t_filter, t_output, t_observationTimes, t_randomSeed)
+    def __init__(self, t_truth, t_filter, t_output, t_observationTimes):
+        self.setSimulationParameters(t_truth, t_filter, t_output, t_observationTimes)
 
     #_________________________
 
-    def setSimulationParameters(self, t_truth, t_filter, t_output, t_observationTimes, t_randomSeed):
+    def setSimulationParameters(self, t_truth, t_filter, t_output, t_observationTimes):
         # truth
         self.m_truth            = t_truth
         # filter
@@ -34,23 +33,14 @@ class Simulation(object):
         self.m_output           = t_output
         # observation times
         self.m_observationTimes = t_observationTimes
-        # random seed
-        self.m_randomSeed       = t_randomSeed
 
     #_________________________
 
     def initialise(self):
         # initialisation
-        self.initialiseRNG()
         self.m_output.initialise()
         self.m_truth.initialise()
         self.m_filter.initialise()
-
-    #_________________________
-
-    def initialiseRNG(self):
-        # set random seed
-        rnd.seed(self.m_randomSeed)
 
     #_________________________
 

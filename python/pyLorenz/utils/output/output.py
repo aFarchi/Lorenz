@@ -23,18 +23,20 @@ class Output(object):
 
     #_________________________
 
-    def __init__(self, t_outputDir, t_modWrite, t_modPrint):
-        self.setOutputParameters(t_outputDir, t_modWrite, t_modPrint)
+    def __init__(self, t_outputDir, t_modWrite, t_modPrint, t_outputLabel):
+        self.setOutputParameters(t_outputDir, t_modWrite, t_modPrint, t_outputLabel)
 
     #_________________________
 
-    def setOutputParameters(self, t_outputDir, t_modWrite, t_modPrint):
+    def setOutputParameters(self, t_outputDir, t_modWrite, t_modPrint, t_outputLabel):
         # output dir
-        self.m_outputDir = t_outputDir
+        self.m_outputDir   = t_outputDir
         # mod write
-        self.m_modWrite  = t_modWrite
+        self.m_modWrite    = t_modWrite
         # mod print
-        self.m_modPrint  = t_modPrint
+        self.m_modPrint    = t_modPrint
+        # output label
+        self.m_outputLabel = t_outputLabel
 
     #_________________________
 
@@ -60,14 +62,13 @@ class Output(object):
 
     #_________________________
 
-    def initialiseTruthOutput(self, t_truthOutputFields, t_observationsOutputFields, t_tmpRecordShape):
+    def initialiseTruthOutput(self, t_truthOutputFields, t_tmpRecordShape):
         # open output files and alloc temporary record arrays
-        for (truthOrObservations, outputFields) in zip(['truth', 'observations'], [t_truthOutputFields, t_observationsOutputFields]):
-            self.m_files[truthOrObservations]     = {}
-            self.m_tmpArrays[truthOrObservations] = {}
-            for field in outputFields:
-                self.m_files[truthOrObservations][field]     = open(self.fileName(self.m_outputDir, truthOrObservations, field), 'wb')
-                self.m_tmpArrays[truthOrObservations][field] = np.zeros(t_tmpRecordShape(self.m_modWrite, truthOrObservations, field))
+        self.m_files['truth']     = {}
+        self.m_tmpArrays['truth'] = {}
+        for field in t_truthOutputFields:
+            self.m_files['truth'][field]     = open(self.fileName('truth', field), 'wb')
+            self.m_tmpArrays['truth'][field] = np.zeros(t_tmpRecordShape(self.m_modWrite, field))
 
     #_________________________
 
@@ -76,7 +77,7 @@ class Output(object):
         self.m_files[t_filterLabel]     = {}
         self.m_tmpArrays[t_filterLabel] = {}
         for field in t_outputFields:
-            self.m_files[t_filterLabel][field]     = open(self.fileName(self.m_outputDir, t_filterLabel, field), 'wb')
+            self.m_files[t_filterLabel][field]     = open(self.fileName(t_filterLabel, field), 'wb')
             self.m_tmpArrays[t_filterLabel][field] = np.zeros(t_tmpRecordShape(self.m_modWrite, field))
 
     #_________________________
@@ -94,10 +95,10 @@ class Output(object):
 
     #_________________________
 
-    def record(self, t_filterOrTruthOrObservations, t_output, t_value):
+    def record(self, t_filterOrTruth, t_output, t_value):
         # record output before writing
         try:
-            self.m_tmpArrays[t_filterOrTruthOrObservations][t_output][self.m_writingCounter] = t_value
+            self.m_tmpArrays[t_filterOrTruth][t_output][self.m_writingCounter] = t_value
         except:
             pass
 
@@ -115,17 +116,16 @@ class Output(object):
 
     def writeAll(self):
         # write all
-        for filterOrTruthOrObservations in self.m_files:
-            for field in self.m_files[filterOrTruthOrObservations]:
-                self.m_tmpArrays[filterOrTruthOrObservations][field][:self.m_writingCounter].tofile(
-                        self.m_files[filterOrTruthOrObservations][field] )
+        for filterOrTruth in self.m_files:
+            for field in self.m_files[filterOrTruth]:
+                self.m_tmpArrays[filterOrTruth][field][:self.m_writingCounter].tofile(self.m_files[filterOrTruth][field])
 
     #_________________________
 
     def finalise(self, t_observationTimes):
         # finalise simulation
         self.writeAll()
-        t_observationTimes.observationTimes().tofile(self.fileName(self.m_outputDir, 'observations', 'time'))
+        #t_observationTimes.observationTimes().tofile(self.fileName(self.m_outputDir, 'observations', 'time'))
         self.closeFiles()
 
         elapsedTime = str(tm.time()-self.m_timeStart)
@@ -136,17 +136,15 @@ class Output(object):
 
     def closeFiles(self):
         # close all files
-        for filterOrTruthOrObservations in self.m_files:
-            for field in self.m_files[filterOrTruthOrObservations]:
-                self.m_files[filterOrTruthOrObservations][field].close()
+        for filterOrTruth in self.m_files:
+            for field in self.m_files[filterOrTruth]:
+                self.m_files[filterOrTruth][field].close()
 
     #_________________________
 
-    def fileName(t_outputDir, t_label, t_output):
-        # file name for field output
-        # label can be filter's name or 'truth' or 'observation'
-        return ( t_outputDir + t_label + '_' + t_output + '.bin' )
-    fileName = staticmethod(fileName)
+    def fileName(self, t_truthOrFilter, t_field):
+        # file name for output
+        return ( self.m_outputDir + self.m_outputLabel + '_' + t_truthOrFilter + '_' + t_field + '.bin' )
 
 #__________________________________________________
 
