@@ -38,6 +38,7 @@ from utils.minimisation.newtonminimiser              import NewtonMinimiser
 from utils.minimisation.goldensectionsearchminimiser import GoldenSectionMinimiser
 
 from model.lorenz63                                  import Lorenz63Model
+from model.lorenz95                                  import Lorenz95Model
 
 from observations.observealloperator                 import ObserveAllOperator
 from observations.regularobservationtimes            import RegularObservationTimes
@@ -184,11 +185,21 @@ class Configuration(object):
 
     #_________________________
 
+    def Lorenz95Model(self):
+        # build Lorenz95 model
+        model_d = self.getInt('dimensions', 'state')
+        model_f = self.getFloat('model', 'f')
+        return Lorenz95Model(model_d, model_f)
+
+    #_________________________
+
     def model(self):
         # build model
         model_class = self.getString('model', 'class')
         if model_class == 'Lorenz63':
             return self.Lorenz63Model()
+        elif model_class == 'Lorenz95':
+            return self.Lorenz95Model()
 
     #_________________________
 
