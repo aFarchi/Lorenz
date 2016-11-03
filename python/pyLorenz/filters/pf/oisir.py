@@ -25,7 +25,7 @@ class OISIRPF_diag(SIRPF):
             t_resampler, t_resamplingTrigger, t_rng):
         SIRPF.__init__(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_label, t_Ns, t_outputFields,
                 t_resampler, t_resamplingTrigger)
-
+        self.setOISIRPF_diagParameters(t_rng)
 
     #_________________________
 
