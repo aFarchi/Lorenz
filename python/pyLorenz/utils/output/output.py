@@ -16,6 +16,7 @@ import numpy as np
 import time  as tm
 
 from ..auxiliary.bash import createDir
+from ..auxiliary.bash import moveFile
 
 #__________________________________________________
 
@@ -122,11 +123,18 @@ class Output(object):
 
     #_________________________
 
-    def finalise(self, t_observationTimes):
+    def finalise(self, t_crashedFilters):
         # finalise simulation
         self.writeAll()
-        #t_observationTimes.observationTimes().tofile(self.fileName(self.m_outputDir, 'observations', 'time'))
         self.closeFiles()
+
+        for filter in t_crashedFilters:
+            label  = filter.m_label
+            fields = filter.m_outputFields
+            for field in fields:
+                oldFileName = self.fileName(label, field)
+                newFileName = oldFileName.replace('.bin', '.bin.crash')
+                moveFile(oldFileName, newFileName)
 
         elapsedTime = str(tm.time()-self.m_timeStart)
         print('Simulation finished')

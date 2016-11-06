@@ -5,7 +5,7 @@
 # dictutils.py
 #__________________________________________________
 # author        : colonel
-# last modified : 2016/10/23
+# last modified : 2016/11/5
 #__________________________________________________
 #
 # fonctions related to dict
@@ -13,22 +13,62 @@
 
 #__________________________________________________
 
-def recDictElement(t_dict, t_keyList):
-    # for a dict of dict of ... of dict of list, with an arbitrary depth level,
-    # return dict[keyList[-1]]...[keyList[0]]
-    # note: this function modifies keyList
-    if t_keyList == []:
-        return t_dict
+def recDictWrite(t_dict, t_indentationLevel, t_lastKey, t_file, t_writeKeyLine, t_writeValueLine):
+    # for a dict of dict of ... of dict, with an arbitrary depth level,
+    # write dict to file
+    if isinstance(t_dict, dict):
+        t_writeKeyLine(t_indentationLevel, t_lastKey, t_file)
+        t_file.write('\n')
+        for key in t_dict:
+            recDictWrite(t_dict[key], t_indentationLevel+1, key, t_file, t_writeKeyLine, t_writeValueLine)
+        t_file.write('\n')
     else:
-        key = t_keyList.pop()
-        return recDictElement(t_dict[key], t_keyList)
+        t_writeValueLine(t_indentationLevel, t_lastKey, t_dict, t_file)
 
 #__________________________________________________
 
-def dictElement(t_dict, t_keyList):
-    # auxiliary function for recDictElement()
-    # that does not modify keyList
-    return recDictElement(t_dict, list(t_keyList))
+def dictWrite(t_dict, t_file, t_writeKeyLine, t_writeValueLine):
+    # for a dict of dict of ... of dict, with an arbitrary depth level,
+    # write dict to file
+    for key in t_dict:
+        recDictWrite(t_dict[key], 0, key, t_file, t_writeKeyLine, t_writeValueLine)
+
+#__________________________________________________
+
+def recDictGet(t_dict, t_keyList):
+    # for a dict of dict of ... of dict, with an arbitrary depth level,
+    # return dict[keyList[0]]...[keyList[-1]]
+    # note: this function modifies keyList
+    if len(t_keyList) == 0:
+        return t_dict
+    else:
+        key = t_keyList.pop(0)
+        return recDictGet(t_dict[key], t_keyList)
+
+#__________________________________________________
+
+def recDictSet(t_dict, t_keyList, t_value):
+    # for a dict of dict of ... of dict, with an arbitrary depth level,
+    # set dict[keyList[0]]...[keyList[-1]] = value
+    # note: this function modifies keyList
+    if len(t_keyList) == 1:
+        t_dict[t_keyList[0]] = t_value
+    else:
+        key = t_keyList.pop(0)
+        if not key in t_dict:
+            t_dict[key] = {}
+        recDictSet(t_dict[key], t_keyList, t_value)
+
+#__________________________________________________
+
+def recMakeKeyList(t_dict, t_keyList, t_currentKeyList):
+    # for a dict of dict of ... of dict, with an arbitrary depth level,
+    # construct the list of all possible keys
+    if isinstance(t_dict, dict):
+        for key in t_dict:
+            recMakeKeyList(t_dict[key], t_keyList, t_currentKeyList+[key])
+    else:
+        t_keyList.append(t_currentKeyList)
 
 #__________________________________________________
 

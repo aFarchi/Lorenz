@@ -1,11 +1,11 @@
 #! /usr/bin/env python
 
 #__________________________________________________
-# pyLorenz/simulation/
-# truth.py
+# pyLorenz/truth/
+# simulatedtruth.py
 #__________________________________________________
 # author        : colonel
-# last modified : 2016/10/30
+# last modified : 2016/11/5
 #__________________________________________________
 #
 # class to handle the truth of a simulation
@@ -13,49 +13,27 @@
 
 import numpy as np
 
+from abstracttruth import AbstractTruth
+
 #__________________________________________________
 
-class Truth(object):
+class SimulatedTruth(AbstractTruth):
 
     #_________________________
 
-    def __init__(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_truthOutputFields):
-        self.setTruthParameters(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_truthOutputFields)
+    def __init__(self, t_truthInitialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_truthOutputFields):
+        AbstractTruth.__init__(self, t_integrator.m_spaceDimension, t_observationOperator.m_spaceDimension, t_observationTimes, t_output, t_truthOutputFields)
+        self.setSimulatedTruthParameters(t_truthInitialiser, t_integrator, t_observationOperator)
 
     #_________________________
 
-    def setTruthParameters(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_truthOutputFields):
+    def setSimulatedTruthParameters(self, t_truthInitialiser, t_integrator, t_observationOperator):
         # initialiser
-        self.m_initialiser         = t_initialiser
+        self.m_initialiser         = t_truthInitialiser
         # integrator
         self.m_integrator          = t_integrator
         # observation operator
         self.m_observationOperator = t_observationOperator
-        # observation times
-        self.m_observationTimes    = t_observationTimes
-        # output
-        self.m_output              = t_output
-        # truth output fields
-        self.m_truthOutputFields   = t_truthOutputFields
-        # x, y space dimension
-        self.m_xSpaceDimension     = t_integrator.m_spaceDimension
-        self.m_ySpaceDimension     = t_observationOperator.m_spaceDimension
-        # index of current truth state
-        self.m_integrationIndex    = 0
-        # time
-        self.m_time                = 0.0
-
-    #_________________________
-
-    def temporaryRecordShape(self, t_nRecord, t_field):
-        # shape for temporary array recording the given field
-        if t_field == 'trajectory':
-            return (t_nRecord, self.m_xSpaceDimension)
-        elif t_field == 'observations':
-            return (t_nRecord, self.m_ySpaceDimension)
-        elif t_field == 'time':
-            return (t_nRecord, 0)
-        return (t_nRecord, 0)
 
     #_________________________
 
@@ -79,9 +57,11 @@ class Truth(object):
         self.m_dx = np.zeros((sizeDX, self.m_xSpaceDimension))
         self.m_y  = np.zeros(self.m_ySpaceDimension)
         # initialise truth
-        self.m_initialiser.initialiseTruth(self.m_x[self.m_integrationIndex])
+        self.m_initialiser.initialise(self.m_x[0])
         # initialise output
         self.m_output.initialiseTruthOutput(self.m_truthOutputFields, self.temporaryRecordShape)
+        # index of current truth state
+        self.m_integrationIndex    = 0
 
     #_________________________
 
@@ -99,16 +79,6 @@ class Truth(object):
         # permute array to prepare next cycle
         self.m_x[0]             = self.m_x[self.m_integrationIndex]
         self.m_integrationIndex = 0
-
-    #_________________________
-
-    def record(self):
-        # trajectory
-        self.m_output.record('truth', 'trajectory', self.m_x[self.m_integrationIndex])
-        # observation
-        self.m_output.record('truth', 'observations', self.m_y)
-        # time
-        self.m_output.record('truth', 'time', self.m_time)
 
 #__________________________________________________
 

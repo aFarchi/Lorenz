@@ -17,8 +17,17 @@ from subprocess import check_output
 #__________________________________________________
 
 def createDir(t_dir):
-    # create directory
+    # mkdir -p dir
     command = ['mkdir', '-p', t_dir]
+    out     = check_output(command)
+    if not out == '':
+        print(out)
+
+#__________________________________________________
+
+def moveFile(t_oldName, t_newName):
+    # mv oldName newName
+    command = ['mv', t_oldName, t_newName]
     out     = check_output(command)
     if not out == '':
         print(out)

@@ -2,16 +2,15 @@
 
 #__________________________________________________
 # pyLorenz/simulation/
-# simulation.py
+# simulation_debug.py
 #__________________________________________________
 # author        : colonel
 # last modified : 2016/10/30
 #__________________________________________________
 #
 # classes to handle the simulation of a model
+# "debug" mode: simulation is stopped when a filter crashes
 #
-
-from itertools import chain
 
 #__________________________________________________
 
@@ -33,8 +32,6 @@ class Simulation(object):
         self.m_output           = t_output
         # observation times
         self.m_observationTimes = t_observationTimes
-        # crashed filters
-        self.m_crashed          = []
 
     #_________________________
 
@@ -51,11 +48,7 @@ class Simulation(object):
         # integrate and observe truth
         self.m_truth.forecast(t_tStart, t_tEnd)
         for filter in self.m_filters:
-            try:
-                filter.forecast(t_tStart, t_tEnd, self.m_truth.observation())
-            except:
-                self.m_filters.remove(filter)
-                self.m_crashed.append(filter)
+            filter.forecast(t_tStart, t_tEnd, self.m_truth.observation())
             filter.computeForecastPerformance(self.m_truth.truth())
         # record truth and observations
         self.m_truth.record()
@@ -68,11 +61,7 @@ class Simulation(object):
     def analyse(self, t_tEnd):
         for filter in self.m_filters:
             # analyse observation
-            try:
-                filter.analyse(t_tEnd, self.m_truth.observation())
-            except:
-                self.m_filters.remove(filter)
-                self.m_crashed.append(filter)
+            filter.analyse(t_tEnd, self.m_truth.observation())
             filter.computeAnalysePerformance(self.m_truth.truth())
             # record filter analyse
             filter.recordAnalyse()
@@ -89,9 +78,9 @@ class Simulation(object):
 
     def finalise(self):
         # finalise simulation
-        self.m_output.finalise(self.m_crashed)
+        self.m_output.finalise([])
         self.m_truth.finalise()
-        for filter in chain(self.m_filters, self.m_crashed):
+        for filter in self.m_filters:
             filter.finalise()
 
     #_________________________

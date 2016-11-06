@@ -5,7 +5,7 @@
 # abstractensemblefilter.py
 #__________________________________________________
 # author        : colonel
-# last modified : 2016/10/15
+# last modified : 2016/11/5
 #__________________________________________________
 #
 # abstract class to handle an ensemble filtering process
@@ -66,7 +66,7 @@ class AbstractEnsembleFilter(object):
         self.m_estimation = np.zeros(self.m_spaceDimension)
         self.m_rmse       = 0.0
         # initialise samples
-        self.m_initialiser.initialiseSamples(self.m_x[self.m_integrationIndex])
+        self.m_initialiser.initialise(self.m_x[self.m_integrationIndex])
         # initialise output
         self.m_output.initialiseFilterOutput(self.m_label, self.m_outputFields, self.temporaryRecordShape)
 
@@ -142,6 +142,12 @@ class AbstractEnsembleFilter(object):
     def recordAnalyse(self):
         # record analyse
         self.record('analyse')
+
+    #_________________________
+
+    def finalise(self):
+        # end simulation
+        pass
 
 #__________________________________________________
 
