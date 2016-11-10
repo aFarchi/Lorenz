@@ -13,10 +13,14 @@
 
 from configuration import Configuration
 
-# configuration from file
-configuration = Configuration()
-# simulation
-simulation    = configuration.buildSimulation()
-# run
-simulation.run()
+def main():
+    # configuration from file
+    configuration = Configuration()
+    # simulation
+    simulation    = configuration.buildSimulation()
+    # run
+    simulation.run()
+
+if __name__ == '__main__':
+    main()
 

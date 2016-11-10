@@ -37,6 +37,7 @@ from utils.trigger.thresholdtrigger                  import ThresholdTrigger
 from utils.minimisation.newtonminimiser              import NewtonMinimiser
 from utils.minimisation.goldensectionsearchminimiser import GoldenSectionMinimiser
 
+from model.nomodel                                   import NoModel
 from model.lorenz63                                  import Lorenz63Model
 from model.lorenz95                                  import Lorenz95Model
 
@@ -183,6 +184,13 @@ class Configuration(object):
 
     #_________________________
 
+    def NoModel(self):
+        # build Lorenz95 model
+        model_d = self.m_config.getInt('dimensions', 'state')
+        return NoModel(model_d)
+
+    #_________________________
+
     def model(self):
         # build model
         model_class = self.m_config.getString('model', 'class')
@@ -190,6 +198,8 @@ class Configuration(object):
             return self.Lorenz63Model()
         elif model_class == 'Lorenz95':
             return self.Lorenz95Model()
+        elif model_class == 'NoModel':
+            return self.NoModel()
 
     #_________________________
 
