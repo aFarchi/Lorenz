@@ -14,6 +14,7 @@
 
 import numpy as np
 import time  as tm
+import sys
 
 from ..auxiliary.bash import createDir
 from ..auxiliary.bash import moveFile
@@ -41,12 +42,20 @@ class Output(object):
 
     #_________________________
 
+    def stdprint(self, t_message, t_endl = True):
+        sys.stdout.write(t_message)
+        if t_endl:
+            sys.stdout.write('\n')
+        sys.stdout.flush()
+
+    #_________________________
+
     def start(self):
         # start simulation
         self.m_timeStart = tm.time()
-        print('Starting simulation')
+        self.stdprint('Starting simulation')
         # create output dir
-        print('Creating output directory')
+        self.stdprint('Creating output directory')
         createDir(self.m_outputDir)
         # writing counter
         self.m_writingCounter = 0
@@ -59,7 +68,7 @@ class Output(object):
 
     def initialise(self):
         # initialise simulation
-        print('Initialisation')
+        self.stdprint('Initialisation')
 
     #_________________________
 
@@ -92,7 +101,7 @@ class Output(object):
             except:
                 self.m_timeStartLoop   = tm.time()
                 estimatedTimeRemaining = '***'
-            print('Running cycle # '+str(t_nCycle)+' / '+str(t_NCycles)+' *** et = '+elapsedTime+' *** etr = '+estimatedTimeRemaining)
+            self.stdprint('Running cycle # '+str(t_nCycle)+' / '+str(t_NCycles)+' *** et = '+elapsedTime+' *** etr = '+estimatedTimeRemaining)
 
     #_________________________
 
@@ -109,7 +118,7 @@ class Output(object):
         # check if necessary to write and call writeAll()
         self.m_writingCounter += 1
         if self.m_writingCounter == self.m_modWrite:
-            print('Writing to files')
+            self.stdprint('Writing to files')
             self.writeAll()
             self.m_writingCounter = 0
 
@@ -137,8 +146,8 @@ class Output(object):
                 moveFile(oldFileName, newFileName)
 
         elapsedTime = str(tm.time()-self.m_timeStart)
-        print('Simulation finished')
-        print('Total elapsed time = '+elapsedTime)
+        self.stdprint('Simulation finished')
+        self.stdprint('Total elapsed time = '+elapsedTime)
 
     #_________________________
 

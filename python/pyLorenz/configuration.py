@@ -17,7 +17,7 @@ from numpy.random                                    import RandomState
 
 from utils.auxiliary.bash                            import configFileNamesFromCommand
 from utils.auxiliary.configparser                    import ConfigParser
-from utils.auxiliary.dictutils                       import makeKeyListDict
+from utils.auxiliary.dictutils                       import makeKeyDictRecListDict
 
 from utils.random.independantgaussianerrorgenerator  import IndependantGaussianErrorGenerator
 from utils.random.stochasticuniversalresampler       import StochasticUniversalResampler
@@ -64,17 +64,17 @@ def filterClassHierarchy():
     # hierarchy of implemented filter classes
     fch                = {}
     fch['EnF']         = {}
-    fch['EnF']['EnKF'] = ['senkf', 'entkf', 'entkfn-dual', 'entkfn-dual-capped']
-    fch['EnF']['PF']   = ['sirpf', 'asirpf', 'oisirpf']
+    fch['EnF']['EnKF'] = ['StoEnKF', 'ETKF', 'ETKF-N-dual']
+    fch['EnF']['PF']   = ['SIR', 'ASIR', 'OISIR']
     return fch
 
 #__________________________________________________
 
 def transformedFilterClassHierarchy():
-    # tranform class hierarchy to make it useful
+    # tranform class hierarchy to make it 'useful'
     # each key is now a filter class
     # and is associated with its inheritance hierarchy
-    return makeKeyListDict(filterClassHierarchy())
+    return makeKeyDictRecListDict(filterClassHierarchy())
 
 #__________________________________________________
 
@@ -83,10 +83,9 @@ class Configuration(object):
     #_________________________
 
     def __init__(self):
-        # read command
-        configFileNames = configFileNamesFromCommand()
         # config parser
-        self.m_config   = ConfigParser(configFileNames)
+        self.m_config   = ConfigParser()
+        self.m_config.readfiles(configFileNamesFromCommand())
         # list of filters
         self.m_filters  = self.filterList()
         # transformed filter class hierarchy
@@ -113,24 +112,24 @@ class Configuration(object):
         # replace 'from truth' occurences by their values
         for f in self.m_filters:
 
-            if self.m_config.getString(f, 'initialisation', 'mean') == 'from truth':
-                self.m_config.set(f, 'initialisation', 'mean', self.m_config.getString('truth', 'initialisation', 'mean'))
-            if self.m_config.getString(f, 'initialisation', 'variance') == 'from truth':
-                self.m_config.set(f, 'initialisation', 'variance', self.m_config.getString('truth', 'initialisation', 'variance'))
+            if self.m_config.get(f, 'initialisation', 'mean') == 'from truth':
+                self.m_config.set(f, 'initialisation', 'mean', self.m_config.get('truth', 'initialisation', 'mean'))
+            if self.m_config.get(f, 'initialisation', 'variance') == 'from truth':
+                self.m_config.set(f, 'initialisation', 'variance', self.m_config.get('truth', 'initialisation', 'variance'))
 
-            if self.m_config.getString(f, 'integration', 'class') == 'from truth':
-                self.m_config.set(f, 'integration', 'class', self.m_config.getString('truth', 'integration', 'class'))
-            if self.m_config.getString(f, 'integration', 'step') == 'from truth':
-                self.m_config.set(f, 'integration', 'step', self.m_config.getString('truth', 'integration', 'step'))
-            if self.m_config.getString(f, 'integration', 'dt') == 'from truth':
-                self.m_config.set(f, 'integration', 'dt', self.m_config.getString('truth', 'integration', 'dt'))
-            if self.m_config.getString(f, 'integration', 'variance') == 'from truth':
-                self.m_config.set(f, 'integration', 'variance', self.m_config.getString('truth', 'integration', 'variance'))
+            if self.m_config.get(f, 'integration', 'class') == 'from truth':
+                self.m_config.set(f, 'integration', 'class', self.m_config.get('truth', 'integration', 'class'))
+            if self.m_config.get(f, 'integration', 'step') == 'from truth':
+                self.m_config.set(f, 'integration', 'step', self.m_config.get('truth', 'integration', 'step'))
+            if self.m_config.get(f, 'integration', 'dt') == 'from truth':
+                self.m_config.set(f, 'integration', 'dt', self.m_config.get('truth', 'integration', 'dt'))
+            if self.m_config.get(f, 'integration', 'variance') == 'from truth':
+                self.m_config.set(f, 'integration', 'variance', self.m_config.get('truth', 'integration', 'variance'))
 
-            if self.m_config.getString(f, 'observation-operator', 'class') == 'from truth':
-                self.m_config.set(f, 'observation-operator', 'class', self.m_config.getString('truth', 'observation-operator', 'class'))
-            if self.m_config.getString(f, 'observation-operator', 'variance') == 'from truth':
-                self.m_config.set(f, 'observation-operator', 'variance', self.m_config.getString('truth', 'observation-operator', 'variance'))
+            if self.m_config.get(f, 'observation-operator', 'class') == 'from truth':
+                self.m_config.set(f, 'observation-operator', 'class', self.m_config.get('truth', 'observation-operator', 'class'))
+            if self.m_config.get(f, 'observation-operator', 'variance') == 'from truth':
+                self.m_config.set(f, 'observation-operator', 'variance', self.m_config.get('truth', 'observation-operator', 'variance'))
 
     #_________________________
 
@@ -140,7 +139,7 @@ class Configuration(object):
         if integration_var is None or integration_var == 0.0:
             self.m_config.set('truth', 'integration', 'class', 'Deterministic')
 
-        if self.m_config.getString('truth', 'integration', 'class') == 'Deterministic':
+        if self.m_config.get('truth', 'integration', 'class') == 'Deterministic':
             self.m_config.set('truth', 'integration', 'variance', '0.0')
 
         for f in self.m_filters:
@@ -148,14 +147,14 @@ class Configuration(object):
             if integration_jit is None or integration_jit == 0.0:
                 self.m_config.set(f, 'integration', 'class', 'Deterministic')
 
-            if self.m_config.getString(f, 'integration', 'class') == 'Deterministic':
+            if self.m_config.get(f, 'integration', 'class') == 'Deterministic':
                 self.m_config.set(f, 'integration', 'variance', '0.0')
 
     #_________________________
 
     def initialiser(self, t_truthOrFilter):
         # build initialiser
-        initialiser_mean = self.m_config.getNPArray(t_truthOrFilter, 'initialisation', 'mean')
+        initialiser_mean = self.m_config.getNumpyArray(t_truthOrFilter, 'initialisation', 'mean')
         initialiser_std  = np.sqrt(self.m_config.getFloat(t_truthOrFilter, 'initialisation', 'variance')) * np.ones(self.m_config.getInt('dimensions', 'state'))
         try:
             seed         = self.m_config.getInt(t_truthOrFilter, 'initialisation', 'seed')
@@ -193,7 +192,7 @@ class Configuration(object):
 
     def model(self):
         # build model
-        model_class = self.m_config.getString('model', 'class')
+        model_class = self.m_config.get('model', 'class')
         if model_class == 'Lorenz63':
             return self.Lorenz63Model()
         elif model_class == 'Lorenz95':
@@ -206,8 +205,8 @@ class Configuration(object):
     def integrator(self, t_truthOrFilter, t_model):
         # build integrator
         integrator_dt  = self.m_config.getFloat(t_truthOrFilter, 'integration', 'dt')
-        integrator_stc = self.m_config.getString(t_truthOrFilter, 'integration', 'step')
-        integrator_cls = self.m_config.getString(t_truthOrFilter, 'integration', 'class')
+        integrator_stc = self.m_config.get(t_truthOrFilter, 'integration', 'step')
+        integrator_cls = self.m_config.get(t_truthOrFilter, 'integration', 'class')
         integrator_var = self.m_config.getFloat(t_truthOrFilter, 'integration', 'variance')
         try:
             seed       = self.m_config.getInt(t_truthOrFilter, 'integration', 'seed')
@@ -252,7 +251,7 @@ class Configuration(object):
             seed        = None
         observation_rng = RandomState(seed)
         observation_eg  = IndependantGaussianErrorGenerator(observation_std, observation_rng)
-        observation_cls = self.m_config.getString(t_truthOrFilter, 'observation-operator', 'class')
+        observation_cls = self.m_config.get(t_truthOrFilter, 'observation-operator', 'class')
         if observation_cls == 'ObserveAll':
             return ObserveAllOperator(observation_eg)
         elif observation_cls == 'ObserveNFirst':
@@ -270,7 +269,7 @@ class Configuration(object):
 
     def observationTimes(self):
         # build observation times
-        observationTimes_cls = self.m_config.getString('observation-times', 'class')
+        observationTimes_cls = self.m_config.get('observation-times', 'class')
         if observationTimes_cls == 'Regular':
             return self.regularObservationTimes()
 
@@ -278,22 +277,22 @@ class Configuration(object):
 
     def output(self):
         # build output
-        output_dir = self.m_config.getString('output', 'directory')
+        output_dir = self.m_config.get('output', 'directory')
         if len(output_dir) == 0:
             output_dir = './'
         if not output_dir[-1] == '/':
             output_dir += '/'
         output_mw  = self.m_config.getInt('output', 'modWrite')
         output_mp  = self.m_config.getInt('output', 'modPrint')
-        output_lbl = self.m_config.getString('output', 'label')
+        output_lbl = self.m_config.get('output', 'label')
         return Output(output_dir, output_mw, output_mp, output_lbl)
 
     #_________________________
 
     def truthFromFile(self, t_observationTimes, t_output, t_truthOutputFields):
         # build truth from file
-        truthFile        = self.m_config.getString('truth', 'files', 'truth')
-        observationsFile = self.m_config.getString('truth', 'files', 'observations')
+        truthFile        = self.m_config.get('truth', 'files', 'truth')
+        observationsFile = self.m_config.get('truth', 'files', 'observations')
         bufferSize       = self.m_config.getInt('truth', 'files', 'buffer_size')
         xDimension       = self.m_config.getInt('dimensions', 'state')
         yDimension       = self.m_config.getInt('dimensions', 'observations')
@@ -312,7 +311,7 @@ class Configuration(object):
 
     def truth(self, t_model, t_observationTimes, t_output):
         # build truth
-        truth_cls = self.m_config.getString('truth', 'class')
+        truth_cls = self.m_config.get('truth', 'class')
         truth_out = self.m_config.getStringList('truth', 'output', 'fields')
         if truth_cls == 'Simulated':
             return self.simulatedTruth(t_model, t_observationTimes, t_output, truth_out)
@@ -321,36 +320,40 @@ class Configuration(object):
 
     #_________________________
 
-    def GoldenSectionMinimiser(self, t_filter, t_prefix):
+    def GoldenSectionMinimiser(self, *t_options):
         # build golden section minimiser
-        minimiser_maxIt = self.m_config.getInt(t_filter, t_prefix, 'max_it')
-        minimiser_tol   = self.m_config.getFloat(t_filter, t_prefix, 'tolerance')
+        opt             = list(t_options)
+        minimiser_maxIt = self.m_config.getInt(*(opt+['max_it']))
+        minimiser_tol   = self.m_config.getFloat(*(opt+['tolerance']))
         return GoldenSectionMinimiser(minimiser_maxIt, minimiser_tol)
 
     #_________________________
 
-    def NewtonMinimiser(self, t_filter, t_prefix):
+    def NewtonMinimiser(self, *t_options):
         # build newton minimiser
-        minimiser_dx    = self.m_config.getFloat(t_filter, t_prefis, 'dx')
-        minimiser_maxIt = self.m_config.getInt(t_filter, t_prefix, 'max_it')
-        minimiser_tol   = self.m_config.getFloat(t_filter, t_prefix, 'tolerance')
+        opt             = list(t_options)
+        minimiser_dx    = self.m_config.getFloat(*(opt+['dx']))
+        minimiser_maxIt = self.m_config.getInt(*(opt+['max_it']))
+        minimiser_tol   = self.m_config.getFloat(*(opt+['tolerance']))
         return NewtonMinimiser(minimiser_dx, minimiser_maxIt, minimiser_tol)
 
     #_________________________
 
-    def minimiser(self, t_filter, t_prefix):
+    def minimiser(self, *t_options):
         # build minimiser
-        minimiser_cls = self.m_config.getString(t_filter, t_prefix, 'class')
+        opt           = list(t_options)
+        opt.append('class')
+        minimiser_cls = self.m_config.get(*opt)
         if minimiser_cls == 'GoldenSection':
-            return self.GoldenSectionMinimiser(t_filter, t_prefix)
+            return self.GoldenSectionMinimiser(*t_options)
         elif minimiser_cls == 'Newton':
-            return self.NewtonMinimiser(t_filter, t_prefix)
+            return self.NewtonMinimiser(*t_options)
 
     #_________________________
 
     def resampler(self, t_filter):
         # build resampler
-        resampler_cls = self.m_config.getString(t_filter, 'resampling', 'class')
+        resampler_cls = self.m_config.get(t_filter, 'resampling', 'class')
         try:
             seed      = self.m_config.getInt(t_filter, 'resampling', 'seed')
         except:
@@ -367,28 +370,20 @@ class Configuration(object):
         # build EnKF
         filter_ifl = self.m_config.getFloat(t_filter, 'ensemble', 'inflation')
 
-        if t_class == 'senkf':
+        if t_class == 'StoEnKF':
             return StochasticEnKF(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output,
                     t_filter, t_Ns, t_outputFields, filter_ifl)
 
-        elif t_class == 'entkf':
+        elif t_class == 'ETKF':
             U = np.eye(t_Ns)
             return EnTKF(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output,
                     t_filter, t_Ns, t_outputFields, filter_ifl, U)
 
-        elif t_class == 'entkfn-dual-capped':
+        elif t_class == 'ETKF-N-dual':
             U         = np.eye(t_Ns)
-            epsilon   = t_Ns / ( t_Ns - 1.0 )
-            maxZeta   = t_Ns - 1.0 
-            minimiser = self.minimiser(t_filter, 'minimiser1d')
-            return EnTKF_N_dual(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output,
-                    t_filter, t_Ns, t_outputFields, filter_ifl, minimiser, epsilon, maxZeta, U)
-
-        elif t_class == 'entkfn-dual':
-            U         = np.eye(t_Ns)
-            epsilon   = ( t_Ns + 1.0 ) / t_Ns
-            maxZeta   = float(t_Ns)
-            minimiser = self.minimiser(t_filter, 'minimiser1d')
+            epsilon   = self.m_config.getFloat(t_filter, 'dual-minimisation', 'epsilon')
+            maxZeta   = self.m_config.getFloat(t_filter, 'dual-minimisation', 'maxZeta')
+            minimiser = self.minimiser(t_filter, 'dual-minimisation', 'minimiser')
             return EnTKF_N_dual(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output,
                     t_filter, t_Ns, t_outputFields, filter_ifl, minimiser, epsilon, maxZeta, U)
 
@@ -400,15 +395,15 @@ class Configuration(object):
         resampler  = self.resampler(t_filter)
         trigger    = ThresholdTrigger(filter_rt)
 
-        if t_class == 'sirpf':
+        if t_class == 'SIR':
             return SIRPF(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, 
                     t_filter, t_Ns, t_outputFields, resampler, trigger)
 
-        elif t_class == 'asirpf':
+        elif t_class == 'ASIR':
             return ASIRPF(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, 
                     t_filter, t_Ns, t_outputFields, resampler, trigger)
 
-        elif t_class == 'oisirpf':
+        elif t_class == 'OISIR':
             try:
                 filter_rng = t_integrator.m_integrationStep.m_errorGenerator.m_rng
             except:
@@ -422,31 +417,31 @@ class Configuration(object):
 
     #_________________________
 
-    def EnF(self, t_filter, t_classInh, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output):
+    def EnF(self, t_filter, t_classInh, t_filter_cls, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output):
         # build EnF
         filter_Ns  = self.m_config.getInt(t_filter, 'ensemble', 'Ns')
         filter_out = self.m_config.getStringList(t_filter, 'output', 'fields')
-        filter_cls = t_classInh.pop()
+        filter_tcl = t_classInh.pop(0)
 
-        if filter_cls == 'EnKF':
-            return self.EnKF(t_filter, t_classInh[0], t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, filter_Ns, filter_out)
-        elif filter_cls == 'PF':
-            return self.PF(t_filter, t_classInh[0], t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, filter_Ns, filter_out)
+        if filter_tcl == 'EnKF':
+            return self.EnKF(t_filter, t_filter_cls, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, filter_Ns, filter_out)
+        elif filter_tcl == 'PF':
+            return self.PF(t_filter, t_filter_cls, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, filter_Ns, filter_out)
 
     #_________________________
 
     def filter(self, t_filter, t_model, t_observationTimes, t_output):
         # build filter
-        filter_cls  = self.m_config.getString(t_filter, 'filter')
-        filter_inh  = self.m_tfch[filter_cls]
+        filter_cls  = self.m_config.get(t_filter, 'filter')
+        filter_inh  = list(self.m_tfch[filter_cls])
 
         initialiser = self.initialiser(t_filter)
         integrator  = self.integrator(t_filter, t_model)
         observation = self.observationOperator(t_filter)
 
-        top_cls    = filter_inh.pop()
+        top_cls    = filter_inh.pop(0)
         if top_cls == 'EnF':
-            return self.EnF(t_filter, filter_inh, initialiser, integrator, observation, t_observationTimes, t_output)
+            return self.EnF(t_filter, filter_inh, filter_cls, initialiser, integrator, observation, t_observationTimes, t_output)
 
     #_________________________
 
