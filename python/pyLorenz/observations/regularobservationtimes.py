@@ -26,7 +26,7 @@ class RegularObservationTimes(object):
 
     def setRegularObservationTimesParameters(self, t_dt, t_Nt):
         # observation times
-        self.m_observationTimes = np.insert(t_dt*np.arange(t_Nt), 0, 0.0)
+        self.m_observationTimes = t_dt * np.arange(t_Nt)
         # longest assimilation cycle
         self.m_longestCycle     = t_dt
 
@@ -34,25 +34,22 @@ class RegularObservationTimes(object):
 
     def numberOfCycles(self):
         # number of assimilation cycles to perform
-        return self.m_observationTimes.size - 1
+        return self.m_observationTimes.size 
 
     #_________________________
 
-    def cycleTimes(self, t_index):
-        # return tStart, tEnd for the index-th cycle
-        return (self.m_observationTimes[t_index], self.m_observationTimes[t_index+1])
+    def __iter__(self):
+        # iteration: nCycle, tStart and tEnd
+        yield 0, 0.0, 0.0
+
+        for i in range(self.m_observationTimes.size-1):
+            yield (i+1, self.m_observationTimes[i], self.m_observationTimes[i+1])
 
     #_________________________
 
     def longestCycle(self):
         # return longest assimilation cycle
         return self.m_longestCycle
-
-    #_________________________
-
-    def observationTimes(self):
-        # return all observation times
-        return self.m_observationTimes[1:]
 
 #__________________________________________________
 
