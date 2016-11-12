@@ -61,7 +61,7 @@ def removeEndLine(t_string):
 #__________________________________________________
 
 def isBlanck(t_string):
-    return len(t_string) == 0 or t_string.isspace()
+    return not t_string or t_string.isspace()
 
 #__________________________________________________
 
@@ -70,10 +70,11 @@ def isImport(t_string):
 
 #__________________________________________________
 
-def extractImport(t_string):
+def extractImport(t_depths, t_childList, t_string, t_imports, t_fileHierarchy):
     toImport = t_string.strip().replace('import ', '')
     depth    = t_string.find('import ')
-    return (depth, toImport)
+    getBackInChildList(t_depths, t_childList, depth, t_string)
+    t_imports.append((t_fileHierarchy, list(t_childList), toImport))
 
 #__________________________________________________
 
@@ -83,14 +84,16 @@ def isTreeNode(t_string):
 
 #__________________________________________________
 
-def extractTreeNode(t_string):
+def extractTreeNode(t_depths, t_childList, t_string):
     node  = t_string.strip()[1:-1]
     depth = t_string.find(node) - 1
-    return (depth, node)
+    getBackInChildList(t_depths, t_childList, depth, t_string)
+    t_depths.append(depth)
+    t_childList.append(node)
 
 #__________________________________________________
 
-def extractTreeLeaf(t_string):
+def extractTreeLeaf(t_depths, t_childList, t_string):
     if '=' in t_string:
         l     = t_string.split('=')
         leaf  = l[0].strip()
@@ -100,7 +103,23 @@ def extractTreeLeaf(t_string):
         value = ''
 
     depth = t_string.find(leaf)
-    return (depth, leaf, value)
+    getBackInChildList(t_depths, t_childList, depth, t_string)
+    if not len(t_depths) == len(t_childList):
+        raise IndentationError(t_string)
+    #t_depths.append(depth)
+    return (leaf, value)
+
+#__________________________________________________
+
+def writeTreeNodeLine(t_file, t_depth, t_node):
+    line  = ' ' * 4 * t_depth + '[' + t_node + ']\n\n'
+    t_file.write(line)
+
+#__________________________________________________
+
+def writeTreeLeafLine(t_file, t_depth, t_leaf, t_value):
+    line  = ' ' * 4 * t_depth + t_leaf + ' = ' + t_value + '\n'
+    t_file.write(line)
 
 #__________________________________________________
 
@@ -110,10 +129,10 @@ def hasReference(t_string, t_referenceChar = '$'):
 #__________________________________________________
 
 def extractReferences(t_string, t_referenceChar = '$'):
-    refs = []
+    refs  = []
     index = -1
-    for i in range(len(t_string)):
-        if t_string[i] == t_referenceChar:
+    for (i, c) in enumerate(t_string):
+        if c == t_referenceChar:
             if index == -1:
                 index = i
             else:
@@ -123,21 +142,21 @@ def extractReferences(t_string, t_referenceChar = '$'):
 
 #__________________________________________________
 
-def checkIndentationError(t_depths, t_depth, t_errorMessage):
-    if ( ( len(t_depths) > 0 and t_depth <= t_depths[-1] and not t_depth in t_depths ) or
-            ( len(t_depths) == 0 and t_depth > 0 ) ):
+def checkIndentation(t_depths, t_depth, t_errorMessage):
+    if ( ( t_depths and t_depth <= t_depths[-1] and not t_depth in t_depths ) or
+            ( not t_depths and t_depth > 0 ) ):
         raise IndentationError(t_errorMessage)
 
 #__________________________________________________
 
-def cutDepthsAndOptions(t_depths, t_options, t_depth, t_errorMessage):
-    checkIndentationError(t_depths, t_depth, t_errorMessage)
+def getBackInChildList(t_depths, t_childList, t_depth, t_errorMessage):
+    checkIndentation(t_depths, t_depth, t_errorMessage)
     if t_depth in t_depths:
         index = t_depths.index(t_depth)
         while len(t_depths) > index:
             t_depths.pop()
-        while len(t_options) > index:
-            t_options.pop()
+        while len(t_childList) > index:
+            t_childList.pop()
 
 #__________________________________________________
 

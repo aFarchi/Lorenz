@@ -30,9 +30,9 @@ class TruthFromFile(AbstractTruth):
 
     def setTruthFromFileParameters(self, t_truthFile, t_observationsFile, t_bufferSize):
         # truth file
-        self.m_truthFile        = open(t_truthFile, 'rb')
+        self.m_truthFile        = t_truthFile.open('rb')
         # observation file
-        self.m_observationsFile = open(t_observationsFile, 'rb')
+        self.m_observationsFile = t_observationsFile.open('rb')
         # buffer size
         self.m_bufferSize       = t_bufferSize
 

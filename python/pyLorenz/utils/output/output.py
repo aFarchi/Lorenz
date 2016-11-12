@@ -16,9 +16,6 @@ import numpy as np
 import time  as tm
 import sys
 
-from ..auxiliary.bash import createDir
-from ..auxiliary.bash import moveFile
-
 #__________________________________________________
 
 class Output(object):
@@ -56,7 +53,7 @@ class Output(object):
         self.stdprint('Starting simulation')
         # create output dir
         self.stdprint('Creating output directory')
-        createDir(self.m_outputDir)
+        self.m_outputDir.makedirs_p()
         # writing counter
         self.m_writingCounter = 0
         # output files
@@ -98,7 +95,7 @@ class Output(object):
             elapsedTime = str(tm.time()-self.m_timeStart)
             try:
                 estimatedTimeRemaining = str((tm.time()-self.m_timeStartLoop)*(t_NCycles-t_nCycle)/t_nCycle)
-            except:
+            except AttributeError:
                 self.m_timeStartLoop   = tm.time()
                 estimatedTimeRemaining = '***'
             self.stdprint('Running cycle # '+str(t_nCycle)+' / '+str(t_NCycles)+' *** et = '+elapsedTime+' *** etr = '+estimatedTimeRemaining)
@@ -109,7 +106,7 @@ class Output(object):
         # record output before writing
         try:
             self.m_tmpArrays[t_filterOrTruth][t_output][self.m_writingCounter] = t_value
-        except:
+        except KeyError:
             pass
 
     #_________________________
@@ -143,7 +140,7 @@ class Output(object):
             for field in fields:
                 oldFileName = self.fileName(label, field)
                 newFileName = oldFileName.replace('.bin', '.bin.crash')
-                moveFile(oldFileName, newFileName)
+                oldFileName.move(newFileName)
 
         elapsedTime = str(tm.time()-self.m_timeStart)
         self.stdprint('Simulation finished')
@@ -161,7 +158,7 @@ class Output(object):
 
     def fileName(self, t_truthOrFilter, t_field):
         # file name for output
-        return ( self.m_outputDir + self.m_outputLabel + '_' + t_truthOrFilter + '_' + t_field + '.bin' )
+        return self.m_outputDir.joinpath(self.m_outputLabel+'_'+t_truthOrFilter+'_'+t_field+'.bin')
 
 #__________________________________________________
 

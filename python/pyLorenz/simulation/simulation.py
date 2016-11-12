@@ -53,7 +53,7 @@ class Simulation(object):
         for filter in self.m_filters:
             try:
                 filter.forecast(t_tStart, t_tEnd, self.m_truth.observation())
-            except:
+            except Exception:
                 self.m_filters.remove(filter)
                 self.m_crashed.append(filter)
             filter.computeForecastPerformance(self.m_truth.truth())
@@ -70,7 +70,7 @@ class Simulation(object):
             # analyse observation
             try:
                 filter.analyse(t_tEnd, self.m_truth.observation())
-            except:
+            except Exception:
                 self.m_filters.remove(filter)
                 self.m_crashed.append(filter)
             filter.computeAnalysePerformance(self.m_truth.truth())

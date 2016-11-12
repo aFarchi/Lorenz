@@ -13,6 +13,7 @@
 
 import numpy as np
 
+from path                                            import Path
 from numpy.random                                    import RandomState
 
 from utils.auxiliary.bash                            import configFileNamesFromCommand
@@ -135,7 +136,7 @@ class Configuration(object):
 
     def checkDeterministicIntegration(self):
         # make sure zero integration variance is used with deterministic integrator
-        integration_var = self.m_config.getFloat('truth', 'integration', 'variance')
+        integration_var = self.m_config.getFloat('truth', 'integration', 'variance', default = None)
         if integration_var is None or integration_var == 0.0:
             self.m_config.set('truth', 'integration', 'class', 'Deterministic')
 
@@ -143,7 +144,7 @@ class Configuration(object):
             self.m_config.set('truth', 'integration', 'variance', '0.0')
 
         for f in self.m_filters:
-            integration_jit = self.m_config.getFloat(f, 'integration', 'variance')
+            integration_jit = self.m_config.getFloat(f, 'integration', 'variance', default = None)
             if integration_jit is None or integration_jit == 0.0:
                 self.m_config.set(f, 'integration', 'class', 'Deterministic')
 
@@ -156,10 +157,7 @@ class Configuration(object):
         # build initialiser
         initialiser_mean = self.m_config.getNumpyArray(t_truthOrFilter, 'initialisation', 'mean')
         initialiser_std  = np.sqrt(self.m_config.getFloat(t_truthOrFilter, 'initialisation', 'variance')) * np.ones(self.m_config.getInt('dimensions', 'state'))
-        try:
-            seed         = self.m_config.getInt(t_truthOrFilter, 'initialisation', 'seed')
-        except:
-            seed         = None
+        seed             = self.m_config.getInt(t_truthOrFilter, 'initialisation', 'seed', default = None)
         initialiser_rng  = RandomState(seed)
         initialiser_eg   = IndependantGaussianErrorGenerator(initialiser_std, initialiser_rng)
         return RandomInitialiser(initialiser_mean, initialiser_eg)
@@ -208,10 +206,7 @@ class Configuration(object):
         integrator_stc = self.m_config.get(t_truthOrFilter, 'integration', 'step')
         integrator_cls = self.m_config.get(t_truthOrFilter, 'integration', 'class')
         integrator_var = self.m_config.getFloat(t_truthOrFilter, 'integration', 'variance')
-        try:
-            seed       = self.m_config.getInt(t_truthOrFilter, 'integration', 'seed')
-        except:
-            seed       = None
+        seed           = self.m_config.getInt(t_truthOrFilter, 'integration', 'seed', default = None)
         integrator_rng = RandomState(seed)
 
         # error generator
@@ -245,10 +240,7 @@ class Configuration(object):
         # build observation operator
         observation_var = self.m_config.getFloat(t_truthOrFilter, 'observation-operator', 'variance')
         observation_std = np.sqrt(observation_var) * np.ones(self.m_config.getInt('dimensions', 'observations'))
-        try:
-            seed        = self.m_config.getInt(t_truthOrFilter, 'observation-operator', 'seed')
-        except:
-            seed        = None
+        seed            = self.m_config.getInt(t_truthOrFilter, 'observation-operator', 'seed', default = None)
         observation_rng = RandomState(seed)
         observation_eg  = IndependantGaussianErrorGenerator(observation_std, observation_rng)
         observation_cls = self.m_config.get(t_truthOrFilter, 'observation-operator', 'class')
@@ -277,11 +269,7 @@ class Configuration(object):
 
     def output(self):
         # build output
-        output_dir = self.m_config.get('output', 'directory')
-        if len(output_dir) == 0:
-            output_dir = './'
-        if not output_dir[-1] == '/':
-            output_dir += '/'
+        output_dir = Path(self.m_config.get('output', 'directory'))
         output_mw  = self.m_config.getInt('output', 'modWrite')
         output_mp  = self.m_config.getInt('output', 'modPrint')
         output_lbl = self.m_config.get('output', 'label')
@@ -291,8 +279,8 @@ class Configuration(object):
 
     def truthFromFile(self, t_observationTimes, t_output, t_truthOutputFields):
         # build truth from file
-        truthFile        = self.m_config.get('truth', 'files', 'truth')
-        observationsFile = self.m_config.get('truth', 'files', 'observations')
+        truthFile        = Path(self.m_config.get('truth', 'files', 'truth'))
+        observationsFile = Path(self.m_config.get('truth', 'files', 'observations'))
         bufferSize       = self.m_config.getInt('truth', 'files', 'buffer_size')
         xDimension       = self.m_config.getInt('dimensions', 'state')
         yDimension       = self.m_config.getInt('dimensions', 'observations')
@@ -354,10 +342,7 @@ class Configuration(object):
     def resampler(self, t_filter):
         # build resampler
         resampler_cls = self.m_config.get(t_filter, 'resampling', 'class')
-        try:
-            seed      = self.m_config.getInt(t_filter, 'resampling', 'seed')
-        except:
-            seed      = None
+        seed          = self.m_config.getInt(t_filter, 'resampling', 'seed', default = None)
         resampler_rng = RandomState(seed)
         if resampler_cls == 'StochasticUniversal':
             return StochasticUniversalResampler(resampler_rng)
@@ -406,11 +391,8 @@ class Configuration(object):
         elif t_class == 'OISIR':
             try:
                 filter_rng = t_integrator.m_integrationStep.m_errorGenerator.m_rng
-            except:
-                try:
-                    seed   = self.m_config.getInt(t_filter, 'integration', 'seed')
-                except:
-                    seed   = None
+            except AttributeError:
+                seed       = self.m_config.getInt(t_filter, 'integration', 'seed', default = None)
                 filter_rng = RandomState(seed)
             return OISIRPF_diag(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, 
                     t_filter, t_Ns, t_outputFields, resampler, trigger, filter_rng)

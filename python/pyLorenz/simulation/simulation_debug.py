@@ -93,8 +93,7 @@ class Simulation(object):
         self.initialise()
 
         # cycles
-        for nCycle in range(self.m_observationTimes.numberOfCycles()):
-            (tStart, tEnd) = self.m_observationTimes.cycleTimes(nCycle)
+        for (nCycle, tStart, tEnd) in self.m_observationTimes:
 
             self.m_output.cycle(nCycle, self.m_observationTimes.numberOfCycles())
 
