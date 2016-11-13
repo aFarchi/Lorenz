@@ -13,7 +13,7 @@
 
 import numpy as np
 
-from sir import SIRPF
+from filters.pf.sir import SIRPF
 
 #__________________________________________________
 

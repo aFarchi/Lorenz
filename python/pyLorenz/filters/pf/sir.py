@@ -13,7 +13,7 @@
 
 import numpy as np
 
-from ..abstractensemblefilter import AbstractEnsembleFilter
+from filters.abstractensemblefilter import AbstractEnsembleFilter
 
 #__________________________________________________
 

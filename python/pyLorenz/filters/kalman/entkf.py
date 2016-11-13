@@ -13,7 +13,7 @@
 
 import numpy as np
 
-from abstractenkf import AbstractEnKF
+from filters.kalman.abstractenkf import AbstractEnKF
 
 #__________________________________________________
 

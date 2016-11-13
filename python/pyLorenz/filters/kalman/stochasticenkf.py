@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 
 #__________________________________________________
-# pyLorenz/filters/pf
+# pyLorenz/filters/kalman/
 # stochasticenkf.py
 #__________________________________________________
 # author        : colonel
@@ -13,7 +13,7 @@
 
 import numpy as np
 
-from abstractenkf import AbstractEnKF
+from filters.kalman.abstractenkf import AbstractEnKF
 
 #__________________________________________________
 

@@ -13,7 +13,7 @@
 
 import numpy as np
 
-from abstractresampler import AbstractResampler
+from utils.random.abstractresampler import AbstractResampler
 
 #__________________________________________________
 

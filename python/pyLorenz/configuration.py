@@ -100,12 +100,8 @@ class Configuration(object):
 
     def filterList(self):
         # list of filters
-        sections   = self.m_config.options()
-        filterList = []
-        for section in sections:
-            if not section in ['dimensions', 'model', 'observation-times', 'output', 'truth']:
-                filterList.append(section)
-        return filterList
+        sections = self.m_config.options()
+        return [section for section in sections if not section in ['dimensions', 'model', 'observation-times', 'output', 'truth']]
 
     #_________________________
 
@@ -329,9 +325,7 @@ class Configuration(object):
 
     def minimiser(self, *t_options):
         # build minimiser
-        opt           = list(t_options)
-        opt.append('class')
-        minimiser_cls = self.m_config.get(*opt)
+        minimiser_cls = self.m_config.get(*(t_options+('class',)))
         if minimiser_cls == 'GoldenSection':
             return self.GoldenSectionMinimiser(*t_options)
         elif minimiser_cls == 'Newton':
@@ -429,12 +423,7 @@ class Configuration(object):
 
     def filters(self, t_model, t_observationTimes, t_output):
         # build all filters
-        filters = []
-
-        for f in self.m_filters:
-            filters.append(self.filter(f, t_model, t_observationTimes, t_output))
-
-        return filters
+        return [self.filter(f, t_model, t_observationTimes, t_output) for f in self.m_filters]
 
     #_________________________
 

@@ -11,8 +11,9 @@
 # functions related to decoration
 #
 
-from functools   import wraps
-from stringutils import stringToInt, stringToFloat, stringToStringList, stringToNumpyArray
+from functools import wraps
+
+from utils.auxiliary.stringutils import stringToInt, stringToFloat, stringToStringList, stringToNumpyArray
 
 #__________________________________________________
 

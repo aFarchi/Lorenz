@@ -13,7 +13,7 @@
 
 import numpy as np
 
-from abstractintegrationstep import AbstractIntegrationStep
+from utils.integration.abstractintegrationstep import AbstractIntegrationStep
 
 #__________________________________________________
 

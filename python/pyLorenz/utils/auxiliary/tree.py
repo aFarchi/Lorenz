@@ -13,8 +13,9 @@
 
 from collections import OrderedDict
 from path        import Path
-from stringutils import removeComments, removeEndLine, isBlanck, isImport, hasReference, isTreeNode
-from stringutils import extractImport, extractReferences, extractTreeNode, extractTreeLeaf, writeTreeNodeLine, writeTreeLeafLine
+
+from utils.auxiliary.stringutils import removeComments, removeEndLine, isBlanck, isImport, hasReference, isTreeNode
+from utils.auxiliary.stringutils import extractImport, extractReferences, extractTreeNode, extractTreeLeaf, writeTreeNodeLine, writeTreeLeafLine
 
 #__________________________________________________
 
@@ -189,9 +190,7 @@ class Tree(object):
         # leaf
         else:
             (leaf, value) = extractTreeLeaf(t_depths, t_childList, t_line)
-            childList = list(t_childList)
-            childList.append(leaf)
-            self.set(childList, value)
+            self.set(t_childList+[leaf], value)
 
     #_________________________
 

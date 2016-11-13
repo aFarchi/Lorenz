@@ -12,9 +12,10 @@
 # copied from toolbox
 #
 
-from path        import Path
-from tree        import Tree, NoDefault
-from decoration  import castDefaultKWArgsDecorator
+from path import Path
+
+from utils.auxiliary.tree       import Tree, NoDefault
+from utils.auxiliary.decoration import castDefaultKWArgsDecorator
 
 #__________________________________________________
 
@@ -95,8 +96,7 @@ class ConfigParser(object):
 
     def set(self, *t_options):
         # set
-        options = list(t_options)
-        value   = options.pop()
+        (*options, value) = t_options
         self.m_tree.set(options, value)
 
 #__________________________________________________

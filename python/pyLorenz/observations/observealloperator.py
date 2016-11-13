@@ -13,7 +13,7 @@
 
 import numpy as np
 
-from abstractobservationoperator import AbstractObservationOperator
+from observations.abstractobservationoperator import AbstractObservationOperator
 
 #__________________________________________________
 

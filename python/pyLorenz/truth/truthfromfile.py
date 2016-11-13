@@ -13,7 +13,7 @@
 
 import numpy as np
 
-from abstracttruth import AbstractTruth
+from truth.abstracttruth import AbstractTruth
 
 #__________________________________________________
 
