@@ -106,6 +106,9 @@ class Simulation(object):
         # cycles
         for (nCycle, tStart, tEnd) in self.m_observationTimes:
 
+            if not self.m_filters:
+                break
+
             self.m_output.cycle(nCycle, self.m_observationTimes.numberOfCycles())
 
             self.forecast(tStart, tEnd)
