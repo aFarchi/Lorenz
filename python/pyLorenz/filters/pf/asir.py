@@ -36,11 +36,11 @@ class ASIRPF(SIRPF):
         if fsIndex == 0:
             return # if no integration, then just return
         self.m_observationOperator.deterministicObserve(self.m_x[fsIndex], t_tEnd, self.m_Hx)
-        fsw   = self.m_observationOperator.pdf(t_observation, self.m_Hx, t_tEnd)
+        fsw = self.m_observationOperator.pdf(t_observation, self.m_Hx, t_tEnd)
 
         # resample at time tStart given these weights
-        # note that we do not need the weights to be normalized since the resampler make sure of it
-        indices     = self.m_resampler.sampleIndices(self.m_Ns, self.m_w+fsw)
+        rw          = self.normaliseWeights(self.m_w+fsw)
+        indices     = self.m_resampler.sampleIndices(self.m_Ns, rw)
         self.m_x[0] = self.m_x[0][indices]
 
         # now integrate particles from tStart to tEnd

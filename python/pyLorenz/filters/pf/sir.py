@@ -68,11 +68,11 @@ class SIRPF(AbstractEnsembleFilter):
 
     #_________________________
 
-    def normaliseWeights(self):
+    def normaliseWeights(self, t_w):
         # second step of analyse : normalise weigths so that they sum up to 1
         # note that wmax is extracted so that there is no zero argument for np.log() in the next line
-        wmax      = self.m_w.max() 
-        self.m_w -= wmax + np.log ( np.exp ( self.m_w - wmax ) . sum () )
+        wmax = t_w.max()
+        return t_w - ( wmax + np.log(np.exp(t_w-wmax).sum()) )
 
     #_________________________
 
@@ -89,7 +89,7 @@ class SIRPF(AbstractEnsembleFilter):
     def analyse(self, t_t, t_observation):
         # analyse observation at time t
         self.reweight(t_t, t_observation)
-        self.normaliseWeights()
+        self.m_w = self.normaliseWeights(self.m_w)
         self.resample(t_t)
 
     #_________________________
