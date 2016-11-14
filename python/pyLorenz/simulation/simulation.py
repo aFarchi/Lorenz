@@ -106,7 +106,7 @@ class Simulation(object):
         # cycles
         for (nCycle, tStart, tEnd) in self.m_observationTimes:
 
-            if not self.m_filters:
+            if not self.m_filters and self.m_crashed:
                 break
 
             self.m_output.cycle(nCycle, self.m_observationTimes.numberOfCycles())

@@ -89,8 +89,6 @@ class Configuration(object):
         self.m_config.readfiles(configFileNamesFromCommand())
         # list of filters
         self.m_filters  = self.filterList()
-        # transformed filter class hierarchy
-        self.m_tfch     = transformedFilterClassHierarchy()
 
         # make some test to configuration
         self.checkFromTruth()
@@ -306,19 +304,17 @@ class Configuration(object):
 
     def GoldenSectionMinimiser(self, *t_options):
         # build golden section minimiser
-        opt             = list(t_options)
-        minimiser_maxIt = self.m_config.getInt(*(opt+['max_it']))
-        minimiser_tol   = self.m_config.getFloat(*(opt+['tolerance']))
+        minimiser_maxIt = self.m_config.getInt(*(t_options+('max_it',)))
+        minimiser_tol   = self.m_config.getFloat(*(t_options+('tolerance',)))
         return GoldenSectionMinimiser(minimiser_maxIt, minimiser_tol)
 
     #_________________________
 
     def NewtonMinimiser(self, *t_options):
         # build newton minimiser
-        opt             = list(t_options)
-        minimiser_dx    = self.m_config.getFloat(*(opt+['dx']))
-        minimiser_maxIt = self.m_config.getInt(*(opt+['max_it']))
-        minimiser_tol   = self.m_config.getFloat(*(opt+['tolerance']))
+        minimiser_dx    = self.m_config.getFloat(*(t_options+('dx',)))
+        minimiser_maxIt = self.m_config.getInt(*(t_options+('max_it',)))
+        minimiser_tol   = self.m_config.getFloat(*(t_options+('tolerance',)))
         return NewtonMinimiser(minimiser_dx, minimiser_maxIt, minimiser_tol)
 
     #_________________________
@@ -409,7 +405,7 @@ class Configuration(object):
     def filter(self, t_filter, t_model, t_observationTimes, t_output):
         # build filter
         filter_cls  = self.m_config.get(t_filter, 'filter')
-        filter_inh  = list(self.m_tfch[filter_cls])
+        filter_inh  = transformedFilterClassHierarchy()[filter_cls]
 
         initialiser = self.initialiser(t_filter)
         integrator  = self.integrator(t_filter, t_model)

@@ -13,6 +13,8 @@
 
 from configuration import Configuration
 
+#__________________________________________________
+
 def main():
     # configuration from file
     configuration = Configuration()
@@ -21,6 +23,10 @@ def main():
     # run
     simulation.run()
 
+#__________________________________________________
+
 if __name__ == '__main__':
     main()
+
+#__________________________________________________
 
