@@ -5,69 +5,59 @@
 # dictutils.py
 #__________________________________________________
 # author        : colonel
-# last modified : 2016/11/1
+# last modified : 2016/11/14
 #__________________________________________________
 #
 # fonctions related to dict
+# copied from toolbox
 #
 
-#__________________________________________________
-
-def recDictElement(t_dict, t_keyList):
-    # for a dict of dict of ... of dict of list, with an arbitrary depth level,
-    # return dict[keyList[-1]]...[keyList[0]]
-    # note: this function modifies keyList
-    if t_keyList == []:
-        return t_dict
-    else:
-        key = t_keyList.pop()
-        return recDictElement(t_dict[key], t_keyList)
+from collections import OrderedDict
 
 #__________________________________________________
 
-def dictElement(t_dict, t_keyList):
-    # auxiliary function for recDictElement()
-    # that does not modify keyList
-    return recDictElement(t_dict, list(t_keyList))
-
-#__________________________________________________
-
-def recMakeKeyListDict(t_dict, t_keyListDict, t_currentKeyList):
-    # for a dict of dict of ... of dict of list, with an arbitrary depth level
-    # build a dict keyListDict such that :
-    # t_keyListDict[e] is the list of keys for t_dict giving the list containing e
-    if isinstance(t_dict, dict):
+def makeKeyDictRecListDict(t_dict, t_currentKeys = []):
+    # for a dict of ... of dict of list with an arbitrary depth level
+    # make a dict kd such that:
+    # for all e in kd, dict[kd[e][0]]...[kd[e][-1]] = [..., e, ...]
+    kd = OrderedDict()
+    if isinstance(t_dict, dict) or isinstance(t_dict, OrderedDict):
         for key in t_dict:
-            recMakeKeyListDict(t_dict[key], t_keyListDict, [key]+t_currentKeyList)
-    elif isinstance(t_dict, list):
-        for element in t_dict:
-            t_keyListDict[element] = [element] + t_currentKeyList
-
-#__________________________________________________
-
-def makeKeyListDict(t_dict):
-    # auxiliary function for recMakeKeyListDict()
-    kld = {}
-    recMakeKeyListDict(t_dict, kld, [])
-    return kld
-
-#__________________________________________________
-
-def recListFromDict(t_dict, t_list):
-    # fill list with dict values
-    if isinstance(t_dict, dict):
-        for key in t_dict:
-            recListFromDict(t_dict[key], t_list)
+            skd = makeKeyDictRecListDict(t_dict[key], t_currentKeys+[key])
+            kd.update(skd)
     else:
-        t_list.append(t_dict)
+        for key in t_dict:
+            kd[key] = t_currentKeys
+    return kd
 
 #__________________________________________________
 
-def listFromDict(t_dict):
-    # auxiliary function for recListFromDict()
-    l = []
-    recListFromDict(t_dict, l)
-    return l
+def makeKeyDictRecDict(t_dict, t_currentKeys = []):
+    # for a dict of ... of dict with an arbitrary depth level
+    # make a dict kd such that
+    # for all e in kd, dict[kd[e][0]]...[kd[e][-1]] = e
+    kd = OrderedDict()
+    for key in t_dict:
+        if isinstance(t_dict[key], dict) or isinstance(t_dict[key], OrderedDict):
+            skd = makeKeyDictRecDict(t_dict[key], t_currentKeys + [key])
+            kd.update(skd)
+        else:
+            kd[t_dict[key]] = t_currentKeys + [key]
+    return kd
+
+#__________________________________________________
+
+def recDictSet(t_dict, t_keys, t_value):
+    # set dict[keys[0]]...[keys[-1]] = value
+    if not t_keys:
+        return
+    key = t_keys.pop(0)
+    if t_keys:
+        if not key in t_dict:
+            t_dict[key] = OrderedDict()
+        recDictSet(t_dict[key], t_keys, t_value)
+    else:
+        t_dict[key] = t_value
 
 #__________________________________________________
 
