@@ -22,14 +22,14 @@ class EnTKF_N_dual(AbstractEnKF):
 
     #_________________________
 
-    def __init__(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_label, t_Ns, t_outputFields, t_inflation,
-            t_minimiser, t_epsilon, t_maxZeta, t_U = None):
-        AbstractEnKF.__init__(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_label, t_Ns, t_outputFields, t_inflation)
-        self.setEnTKF_N_dualParameters(t_minimiser, t_epsilon, t_maxZeta, t_U)
+    def __init__(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_label, t_Ns, t_outputFields, t_inflation, t_rcond, 
+            t_minimiser, t_epsilon, t_maxZeta, t_U = None, t_order = 1):
+        AbstractEnKF.__init__(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_label, t_Ns, t_outputFields, t_inflation, t_rcond)
+        self.setEnTKF_N_dualParameters(t_minimiser, t_epsilon, t_maxZeta, t_U, t_order)
 
     #_________________________
 
-    def setEnTKF_N_dualParameters(self, t_minimiser, t_epsilon, t_maxZeta, t_U):
+    def setEnTKF_N_dualParameters(self, t_minimiser, t_epsilon, t_maxZeta, t_U, t_order):
         # minimiser
         self.m_minimiser = t_minimiser
         # epsilon
@@ -41,6 +41,8 @@ class EnTKF_N_dual(AbstractEnKF):
             self.m_U     = np.eye(self.m_Ns)
         else:
             self.m_U     = t_U
+        # order
+        self.m_order     = t_order
 
     #_________________________
 
@@ -81,11 +83,19 @@ class EnTKF_N_dual(AbstractEnKF):
         diagonal           = np.zeros(self.m_Ns)
         diagonal[:D.size]  = D * D
         diagonal          += zetaa / ( self.m_Ns - 1.0 )
-        wa                /= diagonal
+        wa                *= self.reciprocal(diagonal)
         wa                 = np.dot( U , wa )
 
-        # new ensemble
-        Xa                 = np.dot( self.m_U , np.dot( U / np.sqrt( diagonal ) , np.transpose(U) ) )
+        if self.m_order == 1:
+            # new ensemble
+            Xa             = np.dot( self.m_U , np.dot( U * self.reciprocal(np.sqrt(diagonal)) , np.transpose(U) ) )
+        else:
+            # include the second-order corrections
+            wawaT          = wa * np.transpose( np.broadcast_to( wa , (self.m_Ns, self.m_Ns) ) )
+            H              = np.dot( U * diagonal , np.transpose(U) ) - ( 2.0 / ( self.m_Ns + 1.0 ) ) * ( ( zetaa / ( self.m_Ns - 1.0 ) ) ** 2 ) * wawaT
+            UH, DH, VH     = np.linalg.svd(H)
+            Xa             = np.dot( self.m_U , np.dot( UH * self.reciprocal(np.sqrt(DH)) , VH ) )
+            # note: UH / sqrt(DH) * VH = transpose(VH) / sqrt(DH) * UH since transpose(H) = H
 
         # update
         self.m_x[self.m_integrationIndex] = xf_m + np.dot( wa + np.sqrt( self.m_Ns - 1.0 ) * Xa , Xf )

@@ -21,8 +21,8 @@ class StochasticEnKF(AbstractEnKF):
 
     #_________________________
 
-    def __init__(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_label, t_Ns, t_outputFields, t_inflation):
-        AbstractEnKF.__init__(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_label, t_Ns, t_outputFields, t_inflation)
+    def __init__(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_label, t_Ns, t_outputFields, t_inflation, t_rcond):
+        AbstractEnKF.__init__(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_label, t_Ns, t_outputFields, t_inflation, t_rcond)
 
     #_________________________
 
@@ -47,7 +47,7 @@ class StochasticEnKF(AbstractEnKF):
         Yf    = ( self.m_Hxf - Hxf_m ) / np.sqrt( self.m_Ns - 1.0 )
 
         # Kalman gain
-        K     = np.dot ( np.linalg.pinv ( np.dot ( np.transpose ( Yf ) , Yf ) + sigma ) , np.dot ( np.transpose ( Yf ) , Xf ) )
+        K     = np.dot ( np.linalg.pinv ( np.dot ( np.transpose ( Yf ) , Yf ) + sigma , self.m_rcond ) , np.dot ( np.transpose ( Yf ) , Xf ) )
 
         # Update
         xf   += np.dot ( t_observation + oe - oe_m - self.m_Hxf , K )

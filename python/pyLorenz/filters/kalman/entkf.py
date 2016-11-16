@@ -21,8 +21,8 @@ class EnTKF(AbstractEnKF):
 
     #_________________________
 
-    def __init__(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_label, t_Ns, t_outputFields, t_inflation, t_U = None):
-        AbstractEnKF.__init__(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_label, t_Ns, t_outputFields, t_inflation)
+    def __init__(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_label, t_Ns, t_outputFields, t_inflation, t_rcond, t_U = None):
+        AbstractEnKF.__init__(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_label, t_Ns, t_outputFields, t_inflation, t_rcond)
         self.setEnTKFParameters(t_U)
 
     #_________________________
@@ -61,12 +61,12 @@ class EnTKF(AbstractEnKF):
         # note: T^-1 = ( U * s ) * V hence T = ( tV / s ) * tU
 
         # w = T * S * delta 
-        w = np.dot ( np.dot ( np.transpose(V) / s , np.transpose(U) ) , np.dot ( S , delta ) )
+        w = np.dot ( np.dot ( np.transpose(V) * self.reciprocal(s) , np.transpose(U) ) , np.dot ( S , delta ) )
 
         # update
         # x <- xa + self.m_U * T ^ (1/2) * Xf = xf_m + w * Xf + self.m_U * T ^ (1/2) * Xf
         self.m_x[self.m_integrationIndex] = ( xf_m + 
-                np.dot( w + np.sqrt( self.m_Ns - 1.0 ) * np.dot( self.m_U , np.dot( np.transpose(V) / np.sqrt(s) , np.transpose(U) ) ) , Xf ) )
+                np.dot( w + np.sqrt( self.m_Ns - 1.0 ) * np.dot( self.m_U , np.dot( np.transpose(V) * self.reciprocal(np.sqrt(s)) , np.transpose(U) ) ) , Xf ) )
 
 #__________________________________________________
 
