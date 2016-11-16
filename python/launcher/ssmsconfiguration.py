@@ -186,7 +186,7 @@ class SingleStageMultiSimulationConfiguration(object):
 
     def __init__(self):
         # config parser
-        self.m_config   = ConfigParser()
+        self.m_config   = ConfigParser(t_commentChar = '#', t_referenceChar = '%')
         self.m_config.readfiles(configFileNamesFromCommand())
         # list of filters
         self.buildListOfFilters()

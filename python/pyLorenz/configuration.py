@@ -86,7 +86,7 @@ class Configuration(object):
 
     def __init__(self):
         # config parser
-        self.m_config   = ConfigParser()
+        self.m_config   = ConfigParser(t_commentChar = '#', t_referenceChar = '$')
         self.m_config.readfiles(configFileNamesFromCommand())
         # list of filters
         self.m_filters  = self.filterList()
@@ -347,23 +347,25 @@ class Configuration(object):
     def EnKF(self, t_filter, t_class, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_Ns, t_outputFields):
         # build EnKF
         filter_ifl = self.m_config.getFloat(t_filter, 'ensemble', 'inflation')
+        filter_rcd = self.m_config.getFloat(t_filter, 'linalg', 'rcond', default = 1.0e-15)
 
         if t_class == 'StoEnKF':
             return StochasticEnKF(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output,
-                    t_filter, t_Ns, t_outputFields, filter_ifl)
+                    t_filter, t_Ns, t_outputFields, filter_ifl, filter_rcd)
 
         elif t_class == 'ETKF':
             U = np.eye(t_Ns)
             return EnTKF(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output,
-                    t_filter, t_Ns, t_outputFields, filter_ifl, U)
+                    t_filter, t_Ns, t_outputFields, filter_ifl, filter_rcd, U)
 
         elif t_class == 'ETKF-N-dual':
             U         = np.eye(t_Ns)
             epsilon   = self.m_config.getFloat(t_filter, 'dual-minimisation', 'epsilon')
             maxZeta   = self.m_config.getFloat(t_filter, 'dual-minimisation', 'maxZeta')
             minimiser = self.minimiser(t_filter, 'dual-minimisation', 'minimiser')
+            order     = self.m_config.getInt(t_filter, 'dual-minimisation', 'order')
             return EnTKF_N_dual(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output,
-                    t_filter, t_Ns, t_outputFields, filter_ifl, minimiser, epsilon, maxZeta, U)
+                    t_filter, t_Ns, t_outputFields, filter_ifl, filter_rcd, minimiser, epsilon, maxZeta, U, order)
 
     #_________________________
 
