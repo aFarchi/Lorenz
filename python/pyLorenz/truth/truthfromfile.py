@@ -56,9 +56,9 @@ class TruthFromFile(AbstractTruth):
         self.m_y           = np.fromfile(self.m_observationsFile, count = self.m_bufferSize*self.m_ySpaceDimension)
         self.m_bufferIndex = 0
 
-        curBufSize         = self.m_x.size / self.m_xSpaceDimension
+        curBufSize         = self.m_x.size // self.m_xSpaceDimension
         self.m_x           = self.m_x.reshape((curBufSize, self.m_xSpaceDimension))
-        curBufSize         = self.m_y.size / self.m_ySpaceDimension
+        curBufSize         = self.m_y.size // self.m_ySpaceDimension
         self.m_y           = self.m_y.reshape((curBufSize, self.m_ySpaceDimension))
 
     #_________________________

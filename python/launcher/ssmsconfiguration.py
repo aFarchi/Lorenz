@@ -139,7 +139,7 @@ def runSimulation(t_args):
             size           = field.size
             if np.mod(size, t_common.m_Nt) or not size:
                 raise CrashedError
-            dimension      = size / t_common.m_Nt
+            dimension      = size // t_common.m_Nt
             field          = field.reshape((t_common.m_Nt, dimension))[t_common.m_Nt_relax:]
             # array for results
             # note: results[-1] will hold time and results[-2] will hold a boolean which is true iff the simulation has crashed
