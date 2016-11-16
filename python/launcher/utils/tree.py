@@ -270,7 +270,7 @@ class Tree(object):
         allChildren  = self.subChildren()
         maxRecursion = len(allChildren) - 1
         for childList in allChildren:
-            self.solveReference(childList, maxRecursion)
+            self.solveReference(childList, maxRecursion, t_referenceChar)
             maxRecursion -= 1
 
 #__________________________________________________
