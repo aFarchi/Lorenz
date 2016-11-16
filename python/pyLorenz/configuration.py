@@ -22,6 +22,7 @@ from utils.auxiliary.dictutils                       import makeKeyDictRecListDi
 
 from utils.random.independantgaussianerrorgenerator  import IndependantGaussianErrorGenerator
 from utils.random.stochasticuniversalresampler       import StochasticUniversalResampler
+from utils.random.mcmhresampler                      import MCMHResampler
 from utils.random.directresampler                    import DirectResampler
 
 from utils.integration.kpintegrationstep             import KPIntegrationStep
@@ -338,6 +339,8 @@ class Configuration(object):
             return StochasticUniversalResampler(resampler_rng)
         elif resampler_cls == 'Direct':
             return DirectResampler(resampler_rng)
+        elif resampler_cls == 'MCMH':
+            return MCMHResampler(resampler_rng)
 
     #_________________________
 

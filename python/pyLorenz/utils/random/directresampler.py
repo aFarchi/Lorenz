@@ -32,7 +32,10 @@ class DirectResampler(AbstractResampler):
         # cumulative weights
         wc  = np.exp(t_w).cumsum()
 
-        for ns in np.arange(t_Ns):
+        if wc[-1] == 0.0:
+            return i
+
+        for ns in range(t_Ns):
             # search for particle to duplicate
             cursor = self.m_rng.rand() * wc[-1]
             sample = 0

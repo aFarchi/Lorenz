@@ -32,11 +32,14 @@ class StochasticUniversalResampler(AbstractResampler):
         # cumulative weights
         wc  = np.exp(t_w).cumsum()
 
+        if wc[-1] == 0.0: 
+            return i
+
         # draw random number in [0,1/t_Ns]
         cursor = self.m_rng.rand() * wc[-1] / t_Ns
         sample = 0
 
-        for ns in np.arange(t_Ns):
+        for ns in range(t_Ns):
             # search for particle to duplicate
             while wc[sample] < cursor:
                 sample += 1
