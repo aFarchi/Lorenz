@@ -74,9 +74,21 @@ class AbstractObservationOperator(object):
 
     #_________________________
 
+    def applyLeftErrorCovMatrix_inv(self, t_x):
+        # return R^(-1) . x
+        return self.m_errorGenerator.applyLeftCovMatrix_inv(t_x)
+
+    #_________________________
+
     def applyLeftErrorStdDevMatrix_inv(self, t_x):
         # return R^(-1/2) . x
         return self.m_errorGenerator.applyLeftStdDevMatrix_inv(t_x)
+
+    #_________________________
+
+    def applyRightErrorCovMatrix_inv(self, t_x):
+        # return x . R^(-1)
+        return self.m_errorGenerator.applyRightCovMatrix_inv(t_x)
 
     #_________________________
 

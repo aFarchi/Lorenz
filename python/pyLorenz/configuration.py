@@ -36,8 +36,7 @@ from utils.output.output                             import Output
 
 from utils.trigger.thresholdtrigger                  import ThresholdTrigger
 
-from utils.minimisation.newtonminimiser              import NewtonMinimiser
-from utils.minimisation.goldensectionsearchminimiser import GoldenSectionMinimiser
+from utils.minimisation.scipyminimiser               import ScipyVectorMinimisation, ScipyScalarMinimisation
 
 from model.nomodel                                   import NoModel
 from model.lorenz63                                  import Lorenz63Model
@@ -51,7 +50,7 @@ from truth.truthfromfile                             import TruthFromFile
 
 from filters.kalman.stochasticenkf                   import StochasticEnKF
 from filters.kalman.entkf                            import EnTKF
-from filters.kalman.entkfn                           import EnTKF_N_dual
+from filters.kalman.entkfn                           import EnTKF_N_dual, EnTKF_N_primal
 
 from filters.pf.sir                                  import SIRPF
 from filters.pf.oisir                                import OISIRPF_diag
@@ -66,7 +65,7 @@ def filterClassHierarchy():
     # hierarchy of implemented filter classes
     fch                = {}
     fch['EnF']         = {}
-    fch['EnF']['EnKF'] = ['StoEnKF', 'ETKF', 'ETKF-N-dual']
+    fch['EnF']['EnKF'] = ['StoEnKF', 'ETKF', 'ETKF-N-dual', 'ETKF-N-primal']
     fch['EnF']['PF']   = ['SIR', 'ASIR', 'OISIR']
     return fch
 
@@ -303,30 +302,31 @@ class Configuration(object):
 
     #_________________________
 
-    def GoldenSectionMinimiser(self, *t_options):
-        # build golden section minimiser
-        minimiser_maxIt = self.m_config.getInt(*(t_options+('max_it',)))
-        minimiser_tol   = self.m_config.getFloat(*(t_options+('tolerance',)))
-        return GoldenSectionMinimiser(minimiser_maxIt, minimiser_tol)
-
-    #_________________________
-
-    def NewtonMinimiser(self, *t_options):
-        # build newton minimiser
-        minimiser_dx    = self.m_config.getFloat(*(t_options+('dx',)))
-        minimiser_maxIt = self.m_config.getInt(*(t_options+('max_it',)))
-        minimiser_tol   = self.m_config.getFloat(*(t_options+('tolerance',)))
-        return NewtonMinimiser(minimiser_dx, minimiser_maxIt, minimiser_tol)
+    def ScipyMinimiser(self, *t_options):
+        # build scipy minimiser
+        minimiser_cls = self.m_config.get(*(t_options+('class',)))
+        minimiser_mth = self.m_config.get(*(t_options+('method',)))
+        minimiser_tol = self.m_config.getFloat(*(t_options+('tolerance',)), default = None)
+        minimiser_opt = {'disp': False}
+        try:
+            maxiter   = self.m_config.getInt(*(t_options+('options','maxiter')))
+            minimiser_opt['maxiter'] = maxiter
+        except:
+            pass
+        # one could add here more options depending on minimiser_mth...
+        # e.g. gtol if method == 'BFGS'
+        if minimiser_cls == 'ScipyVector':
+            return ScipyVectorMinimisation(minimiser_mth, minimiser_tol, minimiser_opt)
+        elif minimiser_cls == 'ScipyScalar':
+            return ScipyScalarMinimisation(minimiser_mth, minimiser_tol, minimiser_opt)
 
     #_________________________
 
     def minimiser(self, *t_options):
         # build minimiser
         minimiser_cls = self.m_config.get(*(t_options+('class',)))
-        if minimiser_cls == 'GoldenSection':
-            return self.GoldenSectionMinimiser(*t_options)
-        elif minimiser_cls == 'Newton':
-            return self.NewtonMinimiser(*t_options)
+        if minimiser_cls in ['ScipyVector', 'ScipyScalar']:
+            return self.ScipyMinimiser(*t_options)
 
     #_________________________
 
@@ -366,6 +366,13 @@ class Configuration(object):
             order     = self.m_config.getInt(t_filter, 'dual-minimisation', 'order')
             return EnTKF_N_dual(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output,
                     t_filter, t_Ns, t_outputFields, filter_ifl, filter_rcd, minimiser, epsilon, maxZeta, U, order)
+
+        elif t_class == 'ETKF-N-primal':
+            U         = np.eye(t_Ns)
+            epsilon   = self.m_config.getFloat(t_filter, 'primal-minimisation', 'epsilon')
+            minimiser = self.minimiser(t_filter, 'primal-minimisation', 'minimiser')
+            return EnTKF_N_primal(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output,
+                    t_filter, t_Ns, t_outputFields, filter_ifl, filter_rcd, minimiser, epsilon, U)
 
     #_________________________
 
