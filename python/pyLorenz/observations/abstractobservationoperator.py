@@ -86,6 +86,12 @@ class AbstractObservationOperator(object):
 
     #_________________________
 
+    def applyLeftErrorStdDevMatrix_inv_local(self, t_x, t_dimensions):
+        # return R^(-1/2)[dimensions, dimensions] . x[dimensions, ...]
+        return self.m_errorGenerator.applyLeftStdDevMatrix_inv_local(t_x, t_dimensions)
+
+    #_________________________
+
     def applyRightErrorCovMatrix_inv(self, t_x):
         # return x . R^(-1)
         return self.m_errorGenerator.applyRightCovMatrix_inv(t_x)
@@ -95,6 +101,12 @@ class AbstractObservationOperator(object):
     def applyRightErrorStdDevMatrix_inv(self, t_x):
         # return x . R^(-1/2)
         return self.m_errorGenerator.applyRightStdDevMatrix_inv(t_x)
+
+    #_________________________
+
+    def applyRightErrorStdDevMatrix_inv_local(self, t_x, t_dimensions):
+        # return x[..., dimensions] . R^(-1/2)[dimensions, dimensions]
+        return self.m_errorGenerator.applyRightStdDevMatrix_inv_local(t_x, t_dimensions)
 
     #_________________________
 
@@ -126,6 +138,12 @@ class AbstractObservationOperator(object):
 
     def castObservationToStateSpace(self, t_observation, t_t, t_spaceDimension):
         # cast observation in state space (whose dimension is t_spaceDimension)
+        raise NotImplementedError
+
+    #_________________________
+
+    def nearest_y_dimensions(self, t_nearest_x_dimensions):
+        # nearest dimensions in observation space
         raise NotImplementedError
 
 #__________________________________________________

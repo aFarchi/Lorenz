@@ -52,13 +52,14 @@ from truth.truthfromfile                             import TruthFromFile
 from filters.kalman.stochasticenkf                   import StochasticEnKF
 from filters.kalman.entkf                            import EnTKF
 from filters.kalman.entkfn                           import EnTKF_N_dual, EnTKF_N_primal
+from filters.kalman.lentkf                           import LEnTKF
 
 from filters.pf.sir                                  import SIRPF
 from filters.pf.oisir                                import OISIRPF_diag
 from filters.pf.asir                                 import ASIRPF
 
-from simulation.simulation_debug                     import Simulation
-#from simulation.simulation                           import Simulation
+#from simulation.simulation_debug                     import Simulation
+from simulation.simulation                           import Simulation
 
 #__________________________________________________
 
@@ -66,7 +67,7 @@ def filterClassHierarchy():
     # hierarchy of implemented filter classes
     fch                = {}
     fch['EnF']         = {}
-    fch['EnF']['EnKF'] = ['StoEnKF', 'ETKF', 'ETKF-N-dual', 'ETKF-N-primal']
+    fch['EnF']['EnKF'] = ['StoEnKF', 'ETKF', 'ETKF-N-dual', 'ETKF-N-primal', 'LETKF']
     fch['EnF']['PF']   = ['SIR', 'ASIR', 'OISIR']
     return fch
 
@@ -374,6 +375,12 @@ class Configuration(object):
             U = np.eye(t_Ns)
             return EnTKF(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output,
                     t_filter, t_Ns, t_outputFields, filter_ifl, filter_rcd, U)
+
+        elif t_class == 'LETKF':
+            U         = np.eye(t_Ns)
+            filter_ll = self.m_config.getFloat(t_filter, 'localisation', 'length')
+            return LEnTKF(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output,
+                     t_filter, t_Ns, t_outputFields, filter_ifl, filter_rcd, filter_ll, U)
 
         elif t_class == 'ETKF-N-dual':
             U         = np.eye(t_Ns)

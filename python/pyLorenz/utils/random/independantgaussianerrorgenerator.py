@@ -79,6 +79,12 @@ class IndependantGaussianErrorGenerator(object):
         return np.transpose( np.transpose(t_x) / self.m_stdDev )
 
     #_________________________
+
+    def applyLeftStdDevMatrix_inv_local(self, t_x, t_dimensions):
+        # return stdDev^(-1) [dimensions, dimensions] . x[dimensions, ...]
+        return np.transpose( np.transpose(t_x)[..., t_dimensions] / self.m_stdDev[t_dimensions] )
+
+    #_________________________
         
     def applyRightCovMatrix_inv(self, t_x):
         # return x . sigma^(-1)
@@ -89,6 +95,12 @@ class IndependantGaussianErrorGenerator(object):
     def applyRightStdDevMatrix_inv(self, t_x):
         # return x . stdDev^(-1)
         return t_x / self.m_stdDev
+
+    #_________________________
+
+    def applyRightStdDevMatrix_inv_local(self, t_x, t_dimensions):
+        # return x[..., dimensions] .  stdDev^(-1)[dimensions, dimensions]
+        return t_x[..., t_dimensions] / self.m_stdDev[t_dimensions]
 
     #_________________________
 

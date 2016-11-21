@@ -84,5 +84,11 @@ class ObserveNFirstOperator(AbstractObservationOperator):
         y[:self.m_spaceDimension] = t_observation
         return y
 
+    #_________________________
+
+    def nearest_y_dimensions(self, t_nearest_x_dimensions):
+        # nearest dimensions in observation space 
+        return np.array([dim for dim in t_nearest_x_dimensions if dim < self.m_spaceDimension])
+
 #__________________________________________________
 

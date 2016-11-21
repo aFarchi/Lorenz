@@ -66,5 +66,11 @@ class ObserveAllOperator(AbstractObservationOperator):
         # since observation operator is the identity, the "cast" operator is also the identity
         return t_observation
 
+    #_________________________
+
+    def nearest_y_dimensions(self, t_nearest_x_dimensions):
+        # nearest dimensions in observation space
+        return t_nearest_x_dimensions
+
 #__________________________________________________
 

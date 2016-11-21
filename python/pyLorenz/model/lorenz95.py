@@ -46,5 +46,17 @@ class Lorenz95Model(object):
         # t_dx[..., 0]    = ( t_x[..., 1]  - t_x[..., -2] )   * t_x[..., -1]   - t_x[..., 0]    + self.m_f
         # t_dx[..., 1]    = ( t_x[..., 2]  - t_x[..., -1] )   * t_x[..., 0]    - t_x[..., 1]    + self.m_f
 
+    #_________________________
+
+    def nearest_dimensions(self, t_current_dimension, t_length):
+        # return the dimensions closer to current_dimension than length
+        # to be use for localisation
+        if t_length >= int(np.ceil((self.m_spaceDimension-1)/2)):
+            return np.arange(self.m_spaceDimension)
+        else:
+            d_min = t_current_dimension - int(np.floor(t_length))
+            d_max = t_current_dimension + int(np.floor(t_length))
+            return np.mod(np.arange(d_min, d_max+1), self.m_spaceDimension)
+
 #__________________________________________________
 
