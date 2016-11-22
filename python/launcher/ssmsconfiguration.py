@@ -50,7 +50,7 @@ def variableFilterParameters():
     for f in ['SIR', 'ASIR', 'OISIR']:
         fp[f] = []
         fp[f].append(('ensemble', 'Ns'))
-        fp[f].append(('resampling', 'threshold'))
+        fp[f].append(('resampling', 'trigger', 'threshold_value'))
         fp[f].append(('integration', 'variance'))
     return fp
 
