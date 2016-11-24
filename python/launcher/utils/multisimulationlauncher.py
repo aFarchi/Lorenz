@@ -11,8 +11,6 @@
 # launcher for multi-simulation
 #
 
-from subprocess import run, TimeoutExpired, CalledProcessError
-
 #__________________________________________________
 
 class MultiSimulationLauncher(object):
