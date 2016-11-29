@@ -42,11 +42,13 @@ def variableTruthParameters():
 def variableFilterParameters():
     # for each filters, the list of parameters for which different simulations are performed
     fp = OrderedDict()
-    for f in ['StoEnKF', 'ETKF', 'ETKF-N-dual', 'ETKF-N-primal']:
+    for f in ['StoEnKF', 'ETKF', 'ETKF-N-dual', 'ETKF-N-primal', 'LETKF', 'LETKF-N-dual', 'LETKF-N-primal']:
         fp[f] = []
         fp[f].append(('ensemble', 'Ns'))
         fp[f].append(('ensemble', 'inflation'))
         fp[f].append(('integration', 'variance'))
+    for f in ['LETKF', 'LETKF-N-dual', 'LETKF-N-primal']:
+        fp[f].append(('localisation', 'radius'))
     for f in ['SIR', 'ASIR', 'OISIR']:
         fp[f] = []
         fp[f].append(('ensemble', 'Ns'))
