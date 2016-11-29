@@ -5,7 +5,7 @@
 # lentkf.py
 #__________________________________________________
 # author        : colonel
-# last modified : 2016/11/21
+# last modified : 2016/11/29
 #__________________________________________________
 #
 # class to handle an local ensemble transform kalman filter
@@ -14,6 +14,7 @@
 import numpy as np
 
 from filters.kalman.abstractenkf import AbstractEnKF
+from utils.localisation.taper    import gaussian_tapering, gaspari_cohn_tapering, heaviside_tapering
 
 #__________________________________________________
 
@@ -22,20 +23,31 @@ class LEnTKF(AbstractEnKF):
     #_________________________
 
     def __init__(self, t_initialiser, t_integrator, t_observation_operator, t_observation_times, t_output, t_label, t_Ns, t_output_fields, t_inflation, 
-            t_rcond, t_localisation_length, t_U = None):
+            t_rcond, t_localisation_radius, t_taper_function, t_U = None):
         AbstractEnKF.__init__(self, t_initialiser, t_integrator, t_observation_operator, t_observation_times, t_output, t_label, t_Ns, t_output_fields, t_inflation, t_rcond)
-        self.set_LEnTKF_parameters(t_localisation_length, t_U)
+        self.set_LEnTKF_parameters(t_localisation_radius, t_taper_function, t_U)
 
     #_________________________
 
-    def set_LEnTKF_parameters(self, t_localisation_length, t_U):
-        # localisation length
-        self.m_localisation_length = t_localisation_length
+    def set_LEnTKF_parameters(self, t_localisation_radius, t_taper_function, t_U):
         # U
         if t_U is None:
             self.m_U = np.eye(self.m_Ns)
         else:
             self.m_U = t_U
+
+        # tapper function
+        if t_taper_function == 'Gaussian':
+            taper = gaussian_tapering
+        elif t_taper_function == 'Gaspari-Cohn':
+            taper = gaspari_cohn_tapering
+        elif t_taper_function == 'Heaviside':
+            taper = heaviside_tapering
+        # localisation coefficients
+        self.m_localisation_coefficients = np.zeros((self.m_spaceDimension, self.m_observationOperator.m_spaceDimension))
+        for d in range(self.m_spaceDimension):
+            coefficients = taper(self.m_integrator.m_integrationStep.m_model.distance_to_dimension(d), t_localisation_radius)
+            self.m_localisation_coefficients[d, :] = self.m_observationOperator.cast_localisation_coefficients_to_observation_space(coefficients)
 
     #_________________________
 
@@ -56,13 +68,9 @@ class LEnTKF(AbstractEnKF):
         Yf    = ( self.m_Hxf - Hxf_m ) / np.sqrt( self.m_Ns - 1.0 )
 
         for dimension in range(self.m_spaceDimension):
-            # localisation
-            nearest_x_dimensions = self.m_integrator.m_integrationStep.m_model.nearest_dimensions(dimension, self.m_localisation_length)
-            nearest_y_dimensions = self.m_observationOperator.nearest_y_dimensions(nearest_x_dimensions)
-
-            # local analyse
-            S       = self.m_observationOperator.applyRightErrorStdDevMatrix_inv_local(Yf, nearest_y_dimensions)
-            delta   = self.m_observationOperator.applyLeftErrorStdDevMatrix_inv_local(t_observation-Hxf_m, nearest_y_dimensions)
+            # local analyse for the given dimension
+            S       = self.m_observationOperator.applyRightErrorStdDevMatrix_inv(Yf*self.m_localisation_coefficients[dimension])
+            delta   = self.m_observationOperator.applyLeftErrorStdDevMatrix_inv((t_observation-Hxf_m)*self.m_localisation_coefficients[dimension])
 
             Tm1     = np.eye(self.m_Ns) + np.dot(S, np.transpose(S)) # T^-1
             U, s, V = np.linalg.svd(Tm1)
@@ -71,7 +79,8 @@ class LEnTKF(AbstractEnKF):
             # w = T * S * delta
             w       = np.dot ( np.dot ( np.transpose(V) * self.reciprocal(s) , np.transpose(U) ) , np.dot ( S , delta ) )
 
-            # local update
+            # local update for the given dimension
+            # the other values are dropped
             self.m_x[self.m_integrationIndex, :, dimension] = ( xf_m[dimension] + 
                     np.dot( w + np.sqrt( self.m_Ns - 1.0 ) * np.dot( self.m_U , np.dot( np.transpose(V) * self.reciprocal(np.sqrt(s)) , np.transpose(U) ) ) , 
                         Xf[:, dimension] ) )

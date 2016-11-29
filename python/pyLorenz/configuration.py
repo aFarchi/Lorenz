@@ -377,10 +377,11 @@ class Configuration(object):
                     t_filter, t_Ns, t_outputFields, filter_ifl, filter_rcd, U)
 
         elif t_class == 'LETKF':
-            U         = np.eye(t_Ns)
-            filter_ll = self.m_config.getFloat(t_filter, 'localisation', 'length')
+            U          = np.eye(t_Ns)
+            filter_tap = self.m_config.get(t_filter, 'localisation', 'taper_function')
+            filter_rad = self.m_config.getFloat(t_filter, 'localisation', 'radius')
             return LEnTKF(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output,
-                     t_filter, t_Ns, t_outputFields, filter_ifl, filter_rcd, filter_ll, U)
+                     t_filter, t_Ns, t_outputFields, filter_ifl, filter_rcd, filter_rad, filter_tap, U)
 
         elif t_class == 'ETKF-N-dual':
             U         = np.eye(t_Ns)

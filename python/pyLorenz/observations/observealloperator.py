@@ -72,5 +72,11 @@ class ObserveAllOperator(AbstractObservationOperator):
         # nearest dimensions in observation space
         return t_nearest_x_dimensions
 
+    #_________________________
+
+    def cast_localisation_coefficients_to_observation_space(self, t_localisation_coefficients):
+        # cast loc. coeff. from state space into observation space
+        return t_localisation_coefficients
+
 #__________________________________________________
 

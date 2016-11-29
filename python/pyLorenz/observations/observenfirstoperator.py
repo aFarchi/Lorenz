@@ -90,5 +90,11 @@ class ObserveNFirstOperator(AbstractObservationOperator):
         # nearest dimensions in observation space 
         return np.array([dim for dim in t_nearest_x_dimensions if dim < self.m_spaceDimension])
 
+    #_________________________
+
+    def cast_localisation_coefficients_to_observation_space(self, t_localisation_coefficients):
+        # cast loc. coeff. from state space into observation space
+        return t_localisation_coefficients[:, dim:]
+
 #__________________________________________________
 
