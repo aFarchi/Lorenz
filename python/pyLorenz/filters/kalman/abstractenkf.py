@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 
 #__________________________________________________
-# pyLorenz/filters/pf
+# pyLorenz/filters/kalman
 # abstractenkf.py
 #__________________________________________________
 # author        : colonel

@@ -53,13 +53,14 @@ from filters.kalman.stochasticenkf                   import StochasticEnKF
 from filters.kalman.entkf                            import EnTKF
 from filters.kalman.entkfn                           import EnTKF_N_dual, EnTKF_N_primal
 from filters.kalman.lentkf                           import LEnTKF
+from filters.kalman.lentkfn                          import LEnTKF_N_dual, LEnTKF_N_primal
 
 from filters.pf.sir                                  import SIRPF
 from filters.pf.oisir                                import OISIRPF_diag
 from filters.pf.asir                                 import ASIRPF
 
-#from simulation.simulation_debug                     import Simulation
-from simulation.simulation                           import Simulation
+from simulation.simulation_debug                     import Simulation
+#from simulation.simulation                           import Simulation
 
 #__________________________________________________
 
@@ -67,7 +68,7 @@ def filterClassHierarchy():
     # hierarchy of implemented filter classes
     fch                = {}
     fch['EnF']         = {}
-    fch['EnF']['EnKF'] = ['StoEnKF', 'ETKF', 'ETKF-N-dual', 'ETKF-N-primal', 'LETKF']
+    fch['EnF']['EnKF'] = ['StoEnKF', 'ETKF', 'ETKF-N-dual', 'ETKF-N-primal', 'LETKF', 'LETKF-N-dual', 'LETKF-N-primal']
     fch['EnF']['PF']   = ['SIR', 'ASIR', 'OISIR']
     return fch
 
@@ -398,6 +399,26 @@ class Configuration(object):
             minimiser = self.minimiser(t_filter, 'primal-minimisation', 'minimiser')
             return EnTKF_N_primal(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output,
                     t_filter, t_Ns, t_outputFields, filter_ifl, filter_rcd, minimiser, epsilon, U)
+
+        elif t_class == 'LETKF-N-dual':
+            U         = np.eye(t_Ns)
+            epsilon   = self.m_config.getFloat(t_filter, 'dual-minimisation', 'epsilon')
+            maxZeta   = self.m_config.getFloat(t_filter, 'dual-minimisation', 'maxZeta')
+            minimiser = self.minimiser(t_filter, 'dual-minimisation', 'minimiser')
+            order     = self.m_config.getInt(t_filter, 'dual-minimisation', 'order')
+            taper     = self.m_config.get(t_filter, 'localisation', 'taper_function')
+            radius    = self.m_config.getFloat(t_filter, 'localisation', 'radius')
+            return LEnTKF_N_dual(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output,
+                    t_filter, t_Ns, t_outputFields, filter_ifl, filter_rcd, minimiser, epsilon, maxZeta, radius, taper, U, order)
+
+        elif t_class == 'LETKF-N-primal':
+            U         = np.eye(t_Ns)
+            epsilon   = self.m_config.getFloat(t_filter, 'primal-minimisation', 'epsilon')
+            minimiser = self.minimiser(t_filter, 'primal-minimisation', 'minimiser')
+            taper     = self.m_config.get(t_filter, 'localisation', 'taper_function')
+            radius    = self.m_config.getFloat(t_filter, 'localisation', 'radius')
+            return LEnTKF_N_primal(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output,
+                    t_filter, t_Ns, t_outputFields, filter_ifl, filter_rcd, minimiser, epsilon, radius, taper, U)
 
     #_________________________
 
