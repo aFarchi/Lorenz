@@ -52,6 +52,8 @@ from truth.truthfromfile                             import TruthFromFile
 from filters.kalman.stochasticenkf                   import StochasticEnKF
 from filters.kalman.entkf                            import EnTKF
 from filters.kalman.entkfn                           import EnTKF_N_dual, EnTKF_N_primal
+from filters.kalman.lastochasticenkf                 import LAStochasticEnKF
+from filters.kalman.clstochasticenkf                 import CLStochasticEnKF
 from filters.kalman.lentkf                           import LEnTKF
 from filters.kalman.lentkfn                          import LEnTKF_N_dual, LEnTKF_N_primal
 
@@ -68,7 +70,7 @@ def filterClassHierarchy():
     # hierarchy of implemented filter classes
     fch                = {}
     fch['EnF']         = {}
-    fch['EnF']['EnKF'] = ['StoEnKF', 'ETKF', 'ETKF-N-dual', 'ETKF-N-primal', 'LETKF', 'LETKF-N-dual', 'LETKF-N-primal']
+    fch['EnF']['EnKF'] = ['StoEnKF', 'ETKF', 'ETKF-N-dual', 'ETKF-N-primal', 'LAStoEnKF', 'CLStoEnKF', 'LETKF', 'LETKF-N-dual', 'LETKF-N-primal']
     fch['EnF']['PF']   = ['SIR', 'ASIR', 'OISIR']
     return fch
 
@@ -371,6 +373,18 @@ class Configuration(object):
         if t_class == 'StoEnKF':
             return StochasticEnKF(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output,
                     t_filter, t_Ns, t_outputFields, filter_ifl, filter_rcd)
+
+        elif t_class == 'LAStoEnKF':
+            filter_tap = self.m_config.get(t_filter, 'localisation', 'taper_function')
+            filter_rad = self.m_config.getFloat(t_filter, 'localisation', 'radius')
+            return LAStochasticEnKF(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output,
+                    t_filter, t_Ns, t_outputFields, filter_ifl, filter_rcd, filter_rad, filter_tap)
+
+        elif t_class == 'CLStoEnKF':
+            filter_tap = self.m_config.get(t_filter, 'localisation', 'taper_function')
+            filter_rad = self.m_config.getFloat(t_filter, 'localisation', 'radius')
+            return CLStochasticEnKF(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output,
+                    t_filter, t_Ns, t_outputFields, filter_ifl, filter_rcd, filter_rad, filter_tap)
 
         elif t_class == 'ETKF':
             U = np.eye(t_Ns)

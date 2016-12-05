@@ -94,7 +94,13 @@ class ObserveNFirstOperator(AbstractObservationOperator):
 
     def cast_localisation_coefficients_to_observation_space(self, t_localisation_coefficients):
         # cast loc. coeff. from state space into observation space
-        return t_localisation_coefficients[:, dim:]
+        return t_localisation_coefficients[:, self.m_spaceDimension:]
+
+    #_________________________
+
+    def cast_localisation_matrix_to_observation_space(self, t_localisation_matrix):
+        # cast loc. matrix from state space into observation space
+        return t_localisation_matrix[self.m_spaceDimension:, self.m_spaceDimension:]
 
 #__________________________________________________
 

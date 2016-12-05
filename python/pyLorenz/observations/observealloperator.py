@@ -78,5 +78,11 @@ class ObserveAllOperator(AbstractObservationOperator):
         # cast loc. coeff. from state space into observation space
         return t_localisation_coefficients
 
+    #_________________________
+
+    def cast_localisation_matrix_to_observation_space(self, t_localisation_matrix):
+        # cast loc. matrix from state space into observation space
+        return t_localisation_matrix
+
 #__________________________________________________
 

@@ -152,5 +152,11 @@ class AbstractObservationOperator(object):
         # cast loc. coeff. from state space into observation space
         raise NotImplementedError
 
+    #_________________________
+
+    def cast_localisation_matrix_to_observation_space(self, t_localisation_matrix):
+        # cast loc. matrix from state space into observation space
+        raise NotImplementedError
+
 #__________________________________________________
 
