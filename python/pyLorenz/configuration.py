@@ -60,6 +60,7 @@ from filters.kalman.lentkfn                          import LEnTKF_N_dual, LEnTK
 from filters.pf.sir                                  import SIRPF
 from filters.pf.oisir                                import OISIRPF_diag
 from filters.pf.asir                                 import ASIRPF
+from filters.pf.poterjoyslpf                         import PoterjoysLPF
 
 from simulation.simulation_debug                     import Simulation
 #from simulation.simulation                           import Simulation
@@ -71,7 +72,7 @@ def filterClassHierarchy():
     fch                = {}
     fch['EnF']         = {}
     fch['EnF']['EnKF'] = ['StoEnKF', 'ETKF', 'ETKF-N-dual', 'ETKF-N-primal', 'LAStoEnKF', 'CLStoEnKF', 'LETKF', 'LETKF-N-dual', 'LETKF-N-primal']
-    fch['EnF']['PF']   = ['SIR', 'ASIR', 'OISIR']
+    fch['EnF']['PF']   = ['SIR', 'ASIR', 'OISIR', 'PoterjoysLPF']
     return fch
 
 #__________________________________________________
@@ -441,12 +442,10 @@ class Configuration(object):
         resampler  = self.resampler(t_filter)
 
         if t_class == 'SIR':
-            return SIRPF(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, 
-                    t_filter, t_Ns, t_outputFields, resampler)
+            return SIRPF(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_filter, t_Ns, t_outputFields, resampler)
 
         elif t_class == 'ASIR':
-            return ASIRPF(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, 
-                    t_filter, t_Ns, t_outputFields, resampler)
+            return ASIRPF(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_filter, t_Ns, t_outputFields, resampler)
 
         elif t_class == 'OISIR':
             try:
@@ -454,8 +453,14 @@ class Configuration(object):
             except AttributeError:
                 seed       = self.m_config.getInt(t_filter, 'integration', 'seed', default = None)
                 filter_rng = RandomState(seed)
-            return OISIRPF_diag(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, 
-                    t_filter, t_Ns, t_outputFields, resampler, filter_rng)
+            return OISIRPF_diag(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_filter, t_Ns, t_outputFields, resampler, filter_rng)
+
+        elif t_class == 'PoterjoysLPF':
+            relax     = self.m_config.getFloat(t_filter, 'localisation', 'relaxation')
+            taper     = self.m_config.get(t_filter, 'localisation', 'taper_function')
+            radius    = self.m_config.getFloat(t_filter, 'localisation', 'radius')
+            return PoterjoysLPF(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_filter, t_Ns, t_outputFields, resampler,
+                    relax, taper, radius)
 
     #_________________________
 

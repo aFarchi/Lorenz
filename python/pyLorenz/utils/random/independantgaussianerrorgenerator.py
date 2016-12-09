@@ -68,6 +68,13 @@ class IndependantGaussianErrorGenerator(object):
 
     #_________________________
 
+    def local_pdf(self, t_x, t_t, t_dimension, t_inflation = 1.0):
+        # return the pdf at time t taken at point x
+        # note: the standard deviation of the error is inflated by a factor inflation
+        return np.exp ( - 0.5 * self.square( t_x / ( t_inflation * self.m_stdDev[t_dimension] ) ) )
+
+    #_________________________
+
     def applyLeftCovMatrix_inv(self, t_x):
         # return sigma^(-1) . x
         return np.transpose( np.transpose(t_x) / self.m_sigma )

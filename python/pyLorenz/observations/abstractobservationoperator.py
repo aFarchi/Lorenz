@@ -74,6 +74,13 @@ class AbstractObservationOperator(object):
 
     #_________________________
 
+    def local_pdf(self, t_observation, t_Hx, t_t, t_dimension):
+        # local observation pdf : p ( observation | x )
+        # in this case it is the error generator local pdf at time t taken at point ( observation - H ( x ) )
+        return self.m_errorGenerator.local_pdf(t_observation[t_dimension]-t_Hx[:, t_dimension], t_t, t_dimension)
+
+    #_________________________
+
     def applyLeftErrorCovMatrix_inv(self, t_x):
         # return R^(-1) . x
         return self.m_errorGenerator.applyLeftCovMatrix_inv(t_x)
