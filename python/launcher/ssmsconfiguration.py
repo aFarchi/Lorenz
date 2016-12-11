@@ -59,6 +59,7 @@ def variableFilterParameters():
         fp[f].append(('ensemble', 'Ns'))
         fp[f].append(('integration', 'variance'))
         fp[f].append(('localisation', 'radius'))
+        fp[f].append(('localisation', 'relaxation'))
     return fp
 
 #__________________________________________________
