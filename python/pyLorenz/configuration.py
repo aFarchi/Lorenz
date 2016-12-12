@@ -61,6 +61,7 @@ from filters.pf.sir                                  import SIRPF
 from filters.pf.oisir                                import OISIRPF_diag
 from filters.pf.asir                                 import ASIRPF
 from filters.pf.poterjoyslpf                         import PoterjoysLPF
+from filters.pf.pennyslpf                            import PennysLPF
 
 from simulation.simulation_debug                     import Simulation
 #from simulation.simulation                           import Simulation
@@ -72,7 +73,7 @@ def filterClassHierarchy():
     fch                = {}
     fch['EnF']         = {}
     fch['EnF']['EnKF'] = ['StoEnKF', 'ETKF', 'ETKF-N-dual', 'ETKF-N-primal', 'LAStoEnKF', 'CLStoEnKF', 'LETKF', 'LETKF-N-dual', 'LETKF-N-primal']
-    fch['EnF']['PF']   = ['SIR', 'ASIR', 'OISIR', 'PoterjoysLPF']
+    fch['EnF']['PF']   = ['SIR', 'ASIR', 'OISIR', 'PoterjoysLPF', 'PennysLPF']
     return fch
 
 #__________________________________________________
@@ -461,6 +462,11 @@ class Configuration(object):
             radius    = self.m_config.getFloat(t_filter, 'localisation', 'radius')
             return PoterjoysLPF(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_filter, t_Ns, t_outputFields, resampler,
                     relax, taper, radius)
+
+        elif t_class == 'PennysLPF':
+            taper     = self.m_config.get(t_filter, 'localisation', 'taper_function')
+            radius    = self.m_config.getFloat(t_filter, 'localisation', 'radius')
+            return PennysLPF(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_filter, t_Ns, t_outputFields, resampler, taper, radius)
 
     #_________________________
 
