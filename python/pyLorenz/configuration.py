@@ -62,6 +62,7 @@ from filters.pf.oisir                                import OISIRPF_diag
 from filters.pf.asir                                 import ASIRPF
 from filters.pf.poterjoyslpf                         import PoterjoysLPF
 from filters.pf.pennyslpf                            import PennysLPF
+from filters.pf.customlpf                            import CustomLPF
 
 from simulation.simulation_debug                     import Simulation
 #from simulation.simulation                           import Simulation
@@ -73,7 +74,7 @@ def filterClassHierarchy():
     fch                = {}
     fch['EnF']         = {}
     fch['EnF']['EnKF'] = ['StoEnKF', 'ETKF', 'ETKF-N-dual', 'ETKF-N-primal', 'LAStoEnKF', 'CLStoEnKF', 'LETKF', 'LETKF-N-dual', 'LETKF-N-primal']
-    fch['EnF']['PF']   = ['SIR', 'ASIR', 'OISIR', 'PoterjoysLPF', 'PennysLPF']
+    fch['EnF']['PF']   = ['SIR', 'ASIR', 'OISIR', 'PoterjoysLPF', 'PennysLPF', 'CustomLPF']
     return fch
 
 #__________________________________________________
@@ -467,6 +468,16 @@ class Configuration(object):
             taper     = self.m_config.get(t_filter, 'localisation', 'taper_function')
             radius    = self.m_config.getFloat(t_filter, 'localisation', 'radius')
             return PennysLPF(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_filter, t_Ns, t_outputFields, resampler, taper, radius)
+
+        elif t_class == 'CustomLPF':
+            try:
+                filter_rng = t_integrator.m_integrationStep.m_errorGenerator.m_rng
+            except AttributeError:
+                seed       = self.m_config.getInt(t_filter, 'integration', 'seed', default = None)
+                filter_rng = RandomState(seed)
+            taper     = self.m_config.get(t_filter, 'localisation', 'taper_function')
+            radius    = self.m_config.getFloat(t_filter, 'localisation', 'radius')
+            return CustomLPF(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_filter, t_Ns, t_outputFields, resampler, filter_rng, taper, radius)
 
     #_________________________
 
