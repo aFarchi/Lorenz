@@ -66,64 +66,52 @@ class CustomLPF(AbstractEnsembleFilter):
 
     def forecast(self, t_tStart, t_tEnd, t_observation):
 
-        # auxiliary variables
-        sigma_m = self.m_integrator.errorCovarianceMatrix_diag(t_tStart, t_tEnd) # note: this line only works for BasicStochasticIntegrator instances
-        sigma_o = self.m_observationOperator.errorCovarianceMatrix_diag(t_tEnd, self.m_spaceDimension)
-        
         # deterministic integration
         self.m_integrationIndex = self.m_integrator.deterministicIntegrate(self.m_x, t_tStart, t_tEnd, self.m_dx)
         if self.m_integrationIndex == 0:
             return # if no integration, then just return
 
+        # auxiliary variables
+        sigma_m = self.m_integrator.errorCovarianceMatrix_diag(t_tStart, t_tEnd)[0] # note: this line only works for BasicStochasticIntegrator instances
+        sigma_o = self.m_observationOperator.errorCovarianceMatrix_diag(t_tEnd, self.m_spaceDimension)[0]
+        
         fx = np.copy(self.m_x[self.m_integrationIndex])
-        H  = self.m_observationOperator.differential_diag(fx, t_tEnd)
-        y  = self.m_observationOperator.castObservationToStateSpace(t_observation, t_tEnd, self.m_spaceDimension)
+        H  = self.m_observationOperator.differential_diag(fx, t_tEnd)[0]
 
-        # proposal
-        sigma_p = 1.0 / ( 1.0 / sigma_m + H * ( 1.0 / sigma_o ) * H )
-        mean_p  = sigma_p * ( ( 1.0 / sigma_m ) * fx + H * ( 1.0 / sigma_o ) * y )
+        # shortcuts
+        xf = self.m_x[self.m_integrationIndex]
+        y  = t_observation
 
-        # draw x at tEnd from proposal
-        self.m_x[self.m_integrationIndex] = mean_p + np.sqrt(sigma_p) * self.m_rng.standard_normal(self.m_x[self.m_integrationIndex].shape)
+        # "local" forecast
+        for dimension in range(self.m_spaceDimension):
+            # localisation coefficients
+            loc_c  = self.m_localisation_coefficients[dimension]
 
-        # Compute weights
-        # w = p ( observation | x[tStart] ) / p( observation | x[tEnd] )
-        s = 1.0 / ( sigma_o + H * sigma_m * H )
-        d = y - H * fx
-        self.m_log_w = - 0.5 * ( d * s * d ).sum(axis = -1)
-        self.m_observationOperator.deterministicObserve(self.m_x[self.m_integrationIndex], t_tEnd, self.m_Hx)
-        self.m_log_w -= self.m_observationOperator.pdf(t_observation, self.m_Hx, t_tEnd)
+            # proposal
+            sigma_p = 1.0 / ( 1.0 / sigma_m + ( ( H * loc_c[dimension] ) ** 2 ) / sigma_o ) # 1
+            mean_p  = sigma_p * ( fx[:, dimension] / sigma_m + H * loc_c[dimension] * y[dimension] / sigma_o ) # Ns
 
-        # Normalise weights
-        log_w_max     = self.m_log_w.max()
-        self.m_log_w -= log_w_max + np.log(np.exp(self.m_log_w-log_w_max).sum())
+            # draw x at tEnd from proposal
+            xf[:, dimension] = mean_p + np.sqrt(sigma_p) * self.m_rng.standard_normal(self.m_Ns) # Ns
+
+            # re-weight according to p ( obs | x[tStart] )
+            s     = 1.0 / ( sigma_o + sigma_m * ( H * loc_c ) ** 2 ) # Nx
+            d     = loc_c * ( y - H * fx ) # Ns * Nx
+            log_w = - 0.5 * ( d * s * d ) . sum ( axis = -1 ) # Ns
+
+            # normalise log-weights
+            log_w_max  = log_w.max()
+            log_w     -= log_w_max + np.log(np.exp(log_w-log_w_max).sum())
+
+            # resample
+            w   = np.exp(log_w)
+            ind = self.m_resampler.resampling_indices(w)
+            xf[:, dimension] = xf[ind, dimension]
 
     #_________________________
 
     def analyse(self, t_t, t_observation):
-        # shortcut
-        xf = self.m_x[self.m_integrationIndex]
-        xa = np.zeros(xf.shape)
-
-        # apply observation operator to ensemble
-        self.m_observationOperator.deterministicObserve(xf, t_t, self.m_Hx)
-
-        # local analyse
-        for dimension in range(self.m_spaceDimension):
-            # localisation coefficients
-            loc_c  = self.m_localisation_coefficients[dimension]
-            # log-likelihood
-            log_w  = self.m_log_w + self.m_observationOperator.pdf(t_observation*loc_c, self.m_Hx*loc_c, t_t)
-            # normalise log-likelihood
-            max_w  = log_w.max()
-            log_w -= max_w + np.log(np.exp(log_w-max_w).sum())
-            w      = np.exp(log_w)
-            # resample according to the likelihood
-            ind    = self.m_resampler.resampling_indices(w)
-
-            xa[:, dimension] = xf[ind, dimension]
-
-        xf[:] = xa[:]
+        pass
 
     #_________________________
 
