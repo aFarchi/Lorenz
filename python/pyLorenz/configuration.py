@@ -54,6 +54,7 @@ from filters.kalman.entkf                            import EnTKF
 from filters.kalman.entkfn                           import EnTKF_N_dual, EnTKF_N_primal
 from filters.kalman.lastochasticenkf                 import LAStochasticEnKF
 from filters.kalman.clstochasticenkf                 import CLStochasticEnKF
+#from filters.kalman.debug_clstochasticenkf           import CLStochasticEnKF
 from filters.kalman.lentkf                           import LEnTKF
 from filters.kalman.lentkfn                          import LEnTKF_N_dual, LEnTKF_N_primal
 
