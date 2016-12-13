@@ -466,9 +466,17 @@ class Configuration(object):
                     relax, taper, radius)
 
         elif t_class == 'PennysLPF':
-            taper     = self.m_config.get(t_filter, 'localisation', 'taper_function')
-            radius    = self.m_config.getFloat(t_filter, 'localisation', 'radius')
-            return PennysLPF(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_filter, t_Ns, t_outputFields, resampler, taper, radius)
+            taper      = self.m_config.get(t_filter, 'localisation', 'taper_function')
+            radius     = self.m_config.getFloat(t_filter, 'localisation', 'radius')
+            sstrength  = self.m_config.getFloat(t_filter, 'localisation', 'smoothing_strength')
+            ainflation = self.m_config.getFloat(t_filter, 'resampling', 'adaptative_inflation', default = None)
+            try:
+                filter_rng = t_integrator.m_integrationStep.m_errorGenerator.m_rng
+            except AttributeError:
+                seed       = self.m_config.getInt(t_filter, 'integration', 'seed', default = None)
+                filter_rng = RandomState(seed)
+            return PennysLPF(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_filter, t_Ns, t_outputFields, resampler, taper, radius,
+                    sstrength, ainflation, filter_rng)
 
         elif t_class == 'CustomLPF':
             try:

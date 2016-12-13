@@ -60,7 +60,14 @@ def variableFilterParameters():
         fp[f].append(('integration', 'variance'))
         fp[f].append(('localisation', 'radius'))
         fp[f].append(('localisation', 'relaxation'))
-    for f in ['CustomLPF', 'PennysLPF']:
+    for f in ['PennysLPF']:
+        fp[f] = []
+        fp[f].append(('ensemble', 'Ns'))
+        fp[f].append(('integration', 'variance'))
+        fp[f].append(('localisation', 'radius'))
+        fp[f].append(('localisation', 'smoothing_strength'))
+        fp[f].append(('resampling', 'adaptative_inflation'))
+    for f in ['CustomLPF']:
         fp[f] = []
         fp[f].append(('ensemble', 'Ns'))
         fp[f].append(('integration', 'variance'))

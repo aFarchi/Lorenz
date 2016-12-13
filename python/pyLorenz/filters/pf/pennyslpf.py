@@ -24,16 +24,22 @@ class PennysLPF(AbstractEnsembleFilter):
     #_________________________
 
     def __init__(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_label, t_Ns, t_outputFields, t_resampler,
-            t_taper_function, t_localisation_radius):
+            t_taper_function, t_localisation_radius, t_smoothing_strength, t_adaptative_inflation, t_rng):
         AbstractEnsembleFilter.__init__(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_label, t_Ns, t_outputFields)
-        self.set_PennysLPF_parameters(t_resampler, t_taper_function, t_localisation_radius)
+        self.set_PennysLPF_parameters(t_resampler, t_taper_function, t_localisation_radius, t_smoothing_strength)
         self.set_PennysLPF_tmp_arrays()
 
     #_________________________
 
-    def set_PennysLPF_parameters(self, t_resampler, t_taper_function, t_localisation_radius):
+    def set_PennysLPF_parameters(self, t_resampler, t_taper_function, t_localisation_radius, t_smoothing_strength, t_adaptative_inflation, t_rng):
         # resampler
         self.m_resampler  = t_resampler
+        # smoothing strength
+        self.m_smoothing_strength = t_smoothing_strength
+        # apply adaptative inflation
+        self.m_adaptative_inflation = t_adaptative_inflation
+        # RNG
+        self.m_rng = t_rng
 
         # tapper function
         if t_taper_function == 'Gaussian':
@@ -64,10 +70,14 @@ class PennysLPF(AbstractEnsembleFilter):
     def analyse(self, t_t, t_observation):
         # shortcut
         xf = self.m_x[self.m_integrationIndex]
-        xa = np.zeros(xf.shape)
+
+        xa  = np.zeros(xf.shape)
+        xas = np.zeros(xf.shape)
 
         # apply observation operator to ensemble
         self.m_observationOperator.deterministicObserve(xf, t_t, self.m_Hx)
+
+        res_ind = np.zeros(xf.shape)
 
         # local analyse
         for dimension in range(self.m_spaceDimension):
@@ -80,11 +90,26 @@ class PennysLPF(AbstractEnsembleFilter):
             log_w -= max_w + np.log(np.exp(log_w-max_w).sum())
             w      = np.exp(log_w)
             # resample according to the likelihood
-            ind    = self.m_resampler.resampling_indices(w)
+            res_ind[:, dimension] = self.m_resampler.resampling_indices(w)
+            xa[:, dimension]      = xf[res_ind[:, dimension], dimension]
 
-            xa[:, dimension] = xf[ind, dimension]
+        if self.m_smoothing_strength > 0:
+            # smoothing by weigths
+            for dimension in range(self.m_spaceDimension):
+                # localisation coefficients
+                loc_c  = self.m_localisation_coefficients[dimension]
+                loc_c /= loc_c.sum()
+                # smoothing
+                for dimension_near in range(self.m_spaceDimension):
+                    xas[:, dimension] += xf[res_ind[:, dimension_near], dimension] * loc_c[dimension_near]
 
-        xf[:] = xa[:]
+        xf[:] = self.m_smoothing_strength * xas[:] + ( 1 - self.m_smoothing_strength ) * xa[:]
+
+        if self.m_adaptative_inflation > 0:
+            std     = xf.std(axis = 0) # std is set to the ensemble spread [gaussian kernels with bandwidth=1]
+            std     = np.maximum(std, self.m_adaptative_inflation)
+            errors  = std * self.m_rng.standard_normal(xf.shape)
+            xf     += errors - errors.mean(axis = 0) # add error samples and remove sample mean
 
     #_________________________
 
