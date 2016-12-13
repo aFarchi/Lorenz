@@ -96,11 +96,8 @@ class PennysLPF(AbstractEnsembleFilter):
         if self.m_smoothing_strength > 0:
             # smoothing by weigths
             for dimension in range(self.m_spaceDimension):
-                # localisation coefficients
-                loc_c  = self.m_localisation_coefficients[dimension] / self.m_localisation_coefficients[dimension].sum()
                 # smoothing
-                for dimension_near in range(self.m_spaceDimension):
-                    xas[:, dimension] += xf[res_ind[:, dimension_near], dimension] * loc_c[dimension_near]
+                xas[:, dimension] = np.average ( xf[res_ind[:, :], dimension] , axis = 1 , weights = self.m_localisation_coefficients[dimension] )
 
         xf[:] = self.m_smoothing_strength * xas[:] + ( 1 - self.m_smoothing_strength ) * xa[:]
 
