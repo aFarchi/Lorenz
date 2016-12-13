@@ -26,7 +26,7 @@ class PennysLPF(AbstractEnsembleFilter):
     def __init__(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_label, t_Ns, t_outputFields, t_resampler,
             t_taper_function, t_localisation_radius, t_smoothing_strength, t_adaptative_inflation, t_rng):
         AbstractEnsembleFilter.__init__(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_label, t_Ns, t_outputFields)
-        self.set_PennysLPF_parameters(t_resampler, t_taper_function, t_localisation_radius, t_smoothing_strength)
+        self.set_PennysLPF_parameters(t_resampler, t_taper_function, t_localisation_radius, t_smoothing_strength, t_adaptative_inflation, t_rng)
         self.set_PennysLPF_tmp_arrays()
 
     #_________________________
@@ -77,7 +77,7 @@ class PennysLPF(AbstractEnsembleFilter):
         # apply observation operator to ensemble
         self.m_observationOperator.deterministicObserve(xf, t_t, self.m_Hx)
 
-        res_ind = np.zeros(xf.shape)
+        res_ind = np.zeros(xf.shape, dtype=int)
 
         # local analyse
         for dimension in range(self.m_spaceDimension):
@@ -90,15 +90,14 @@ class PennysLPF(AbstractEnsembleFilter):
             log_w -= max_w + np.log(np.exp(log_w-max_w).sum())
             w      = np.exp(log_w)
             # resample according to the likelihood
-            res_ind[:, dimension] = self.m_resampler.resampling_indices(w)
+            res_ind[:, dimension] = self.m_resampler.resampling_indices(w)
             xa[:, dimension]      = xf[res_ind[:, dimension], dimension]
 
         if self.m_smoothing_strength > 0:
             # smoothing by weigths
             for dimension in range(self.m_spaceDimension):
                 # localisation coefficients
-                loc_c  = self.m_localisation_coefficients[dimension]
-                loc_c /= loc_c.sum()
+                loc_c  = self.m_localisation_coefficients[dimension] / self.m_localisation_coefficients[dimension].sum()
                 # smoothing
                 for dimension_near in range(self.m_spaceDimension):
                     xas[:, dimension] += xf[res_ind[:, dimension_near], dimension] * loc_c[dimension_near]
