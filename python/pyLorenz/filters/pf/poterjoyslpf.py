@@ -98,24 +98,23 @@ class PoterjoysLPF(AbstractEnsembleFilter):
 
             # reweight according to observation weights
             p = self.m_observationOperator.local_pdf(t_observation, self.m_Hx, t_t, ny)
-            for j in range(self.m_spaceDimension):
-                w[:, j] *= 1.0 + self.m_relaxation * self.m_localisation_coefficients[j, ny] * ( p - 1.0 )
+            w[:, :] *= 1 + self.m_relaxation * self.m_localisation_coefficients[:, ny] * ( np.broadcast_to(p, (self.m_spaceDimension, self.m_Ns)).transpose() - 1 )
             W     = w.sum(axis = 0)
             mean  = ( w * prior / W ) . sum ( axis = 0 )
             sigma = ( w * ( prior - mean )**2 / W ) . sum ( axis = 0 )
 
             epsilon = 1.e-8
 
-            for j in range(self.m_spaceDimension):
-                l = self.m_localisation_coefficients[j, ny]
-                if l < epsilon:
-                    r1 = 0.0
-                    r2 = 1.0
-                else:
-                    c  = self.m_Ns * ( 1.0 - self.m_relaxation * l ) / ( l * self.m_relaxation * sir_W )
-                    r1 = np.sqrt( sigma[j] * ( self.m_Ns - 1.0 ) / ( ( xf[sir_resampling_indices, j] - mean[j] + c * ( xf[:, j] - mean[j] ) ) ** 2 ).sum() )
-                    r2 = c * r1
-                xf[:, j] = mean[j] + r1 * ( xf[sir_resampling_indices, j] - mean[j] ) + r2 * ( xf[:, j] - mean[j] )
+            # vectorised version
+            l  = self.m_localisation_coefficients[:, ny]
+            c  = ( l > epsilon ) * self.m_Ns * ( 1.0 - self.m_relaxation * l ) / ( np.maximum(l, epsilon) * self.m_relaxation * sir_W )
+            d  = ( ( xf[sir_resampling_indices, :] - mean + c * ( xf - mean ) ) ** 2 ) . sum (axis = 0)
+            r1 = ( ( l > epsilon ) * ( d > epsilon ) * np.sqrt( sigma * ( self.m_Ns - 1.0 ) / np.maximum(d, epsilon) ) +
+                    ( l > epsilon ) * ( d <= epsilon ) * 1 )
+            r2 = ( ( l > epsilon ) * ( d > epsilon ) * c * r1 +
+                    ( l <= epsilon ) * 1 )
+
+            xf[:, :] = mean + r1 * ( xf[sir_resampling_indices] - mean ) + r2 * ( xf - mean )
 
     #_________________________
 
