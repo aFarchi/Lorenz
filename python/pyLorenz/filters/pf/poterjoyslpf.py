@@ -74,6 +74,7 @@ class PoterjoysLPF(AbstractEnsembleFilter):
         prior = xf.copy()
         w     = np.ones((self.m_Ns, self.m_spaceDimension))
 
+        epsilon = 1.e-8
 
         # process each component of observation independantly
         for ny in range(t_observation.size):
@@ -83,6 +84,9 @@ class PoterjoysLPF(AbstractEnsembleFilter):
             p     = self.m_observationOperator.local_pdf(t_observation, self.m_Hcx, t_t, ny)
             sir_w = self.m_relaxation * ( p - 1.0 ) + 1.0
             sir_W = sir_w.sum()
+            if sir_W < epsilon:
+                # in this case r1 -> 0 and r2 -> 1 hence there is no update
+                continue
             sir_resampling_indices = self.m_resampler.resampling_indices(sir_w)
 
             # minimise adjustment for surviving particles
@@ -100,10 +104,9 @@ class PoterjoysLPF(AbstractEnsembleFilter):
             p = self.m_observationOperator.local_pdf(t_observation, self.m_Hx, t_t, ny)
             w[:, :] *= 1 + self.m_relaxation * self.m_localisation_coefficients[:, ny] * ( np.broadcast_to(p, (self.m_spaceDimension, self.m_Ns)).transpose() - 1 )
             W     = w.sum(axis = 0)
-            mean  = ( w * prior / W ) . sum ( axis = 0 )
-            sigma = ( w * ( prior - mean )**2 / W ) . sum ( axis = 0 )
-
-            epsilon = 1.e-8
+            w     = ( ( W > epsilon ) * w / np.maximum( W , epsilon ) + ( W <= epsilon ) / self.m_Ns )
+            mean  = ( w * prior ) . sum ( axis = 0 )
+            sigma = ( w * ( prior - mean )**2 ) . sum ( axis = 0 )
 
             # vectorised version
             l  = self.m_localisation_coefficients[:, ny]
