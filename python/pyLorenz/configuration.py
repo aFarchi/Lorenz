@@ -486,7 +486,9 @@ class Configuration(object):
                 filter_rng = RandomState(seed)
             taper     = self.m_config.get(t_filter, 'localisation', 'taper_function')
             radius    = self.m_config.getFloat(t_filter, 'localisation', 'radius')
-            return CustomLPF(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_filter, t_Ns, t_outputFields, resampler, filter_rng, taper, radius)
+            sstrength = self.m_config.getFloat(t_filter, 'localisation', 'smoothing_strength')
+            return CustomLPF(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_filter, t_Ns, t_outputFields, resampler, filter_rng, 
+                    taper, radius, sstrength)
 
     #_________________________
 

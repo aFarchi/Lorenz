@@ -24,18 +24,20 @@ class CustomLPF(AbstractEnsembleFilter):
     #_________________________
 
     def __init__(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_label, t_Ns, t_outputFields, t_resampler, t_rng,
-            t_taper_function, t_localisation_radius):
+            t_taper_function, t_localisation_radius, t_smoothing_strength):
         AbstractEnsembleFilter.__init__(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_label, t_Ns, t_outputFields)
-        self.set_CustomLPF_parameters(t_resampler, t_rng, t_taper_function, t_localisation_radius)
+        self.set_CustomLPF_parameters(t_resampler, t_rng, t_taper_function, t_localisation_radius, t_smoothing_strength)
         self.set_CustomLPF_tmp_arrays()
 
     #_________________________
 
-    def set_CustomLPF_parameters(self, t_resampler, t_rng, t_taper_function, t_localisation_radius):
+    def set_CustomLPF_parameters(self, t_resampler, t_rng, t_taper_function, t_localisation_radius, t_smoothing_strength):
         # random number generator
         self.m_rng = t_rng
         # resampler
         self.m_resampler  = t_resampler
+        # smoothing strength
+        self.m_smoothing_strength = t_smoothing_strength
 
         # tapper function
         if t_taper_function == 'Gaussian':
@@ -55,7 +57,6 @@ class CustomLPF(AbstractEnsembleFilter):
     def set_CustomLPF_tmp_arrays(self):
         # allocate temporary arrays
         self.m_Hx  = np.zeros((self.m_Ns, self.m_observationOperator.m_spaceDimension))
-        self.m_log_w = - np.log(self.m_Ns) * np.ones(self.m_Ns)
 
     #_________________________
 
@@ -79,8 +80,12 @@ class CustomLPF(AbstractEnsembleFilter):
         H  = self.m_observationOperator.differential_diag(fx, t_tEnd)[0]
 
         # shortcuts
-        xf = self.m_x[self.m_integrationIndex]
-        y  = t_observation
+        xf  = self.m_x[self.m_integrationIndex]
+        xa  = np.zeros(xf.shape)
+        xas = np.zeros(xf.shape)
+        y   = t_observation
+
+        res_ind = np.zeros(xf.shape, dtype=int)
 
         # "local" forecast
         for dimension in range(self.m_spaceDimension):
@@ -104,9 +109,17 @@ class CustomLPF(AbstractEnsembleFilter):
             log_w     -= log_w_max + np.log(np.exp(log_w-log_w_max).sum())
 
             # resample
-            w   = np.exp(log_w)
-            ind = self.m_resampler.resampling_indices(w)
-            xf[:, dimension] = xf[ind, dimension]
+            res_ind[:, dimension] = self.m_resampler.resampling_indices(np.exp(log_w))
+            xa[:, dimension]      = xf[res_ind[:, dimension], dimension]
+
+        if self.m_smoothing_strength > 0:
+            # smoothing by weigths
+            for dimension in range(self.m_spaceDimension):
+                # smoothing
+                xas[:, dimension] = np.average ( xf[res_ind[:, :], dimension] , axis = 1 , weights = self.m_localisation_coefficients[dimension] )
+
+        # update
+        xf[:] = self.m_smoothing_strength * xas[:] + ( 1 - self.m_smoothing_strength ) * xa[:]
 
     #_________________________
 
