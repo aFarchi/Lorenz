@@ -95,7 +95,7 @@ class PoterjoysLPF(AbstractEnsembleFilter):
             sir_resampling_indices[u] = u
             remaining = []
             for (i, c) in zip(u, counts):
-                remaining.extend([i]*c)
+                remaining.extend([i]*(c-1))
             for i in range(self.m_Ns-1, -1, -1):
                 if sir_resampling_indices[i] < 0:
                     sir_resampling_indices[i] = remaining.pop()
