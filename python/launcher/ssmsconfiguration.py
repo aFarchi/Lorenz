@@ -54,6 +54,7 @@ def variableFilterParameters():
         fp[f].append(('ensemble', 'Ns'))
         fp[f].append(('resampling', 'trigger', 'threshold_value'))
         fp[f].append(('integration', 'variance'))
+        fp[f].append(('resampling', 'regularisation', 'variance'))
     for f in ['PoterjoysLPF']:
         fp[f] = []
         fp[f].append(('ensemble', 'Ns'))

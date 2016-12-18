@@ -35,6 +35,7 @@ from utils.trigger.thresholdtrigger                  import ThresholdTrigger
 from utils.trigger.countertrigger                    import CounterTrigger
 from utils.trigger.counterorthresholdtrigger         import CounterOrThresholdTrigger
 
+from utils.sampling.regulariser                      import NoRegulariser, JitterRegulariser, UnivariateGaussianKernelRegulariser
 from utils.sampling.resampler                        import Resampler
 
 from utils.minimisation.scipyminimiser               import ScipyVectorMinimisation, ScipyScalarMinimisation
@@ -359,13 +360,29 @@ class Configuration(object):
 
     #_________________________
 
+    def regulariser(self, t_filter, t_rng):
+        # build regulariser
+        rgl_cls = self.m_config.get(t_filter, 'resampling', 'regularisation', 'method')
+        if rgl_cls == 'Jitter':
+            rgl_var = np.sqrt(self.m_config.getFloat(t_filter, 'resampling', 'regularisation', 'variance'))
+            return JitterRegulariser(t_rng, rgl_var)
+        elif rgl_cls == 'UnivariateGaussian':
+            rgl_min = self.m_config.getFloat(t_filter, 'resampling', 'regularisation', 'variance_min')
+            rgl_bw  = self.m_config.getFloat(t_filter, 'resampling', 'regularisation', 'bandwidth_scale')
+            return UnivariateGaussianKernelRegulariser(t_rng, rgl_min, rgl_bw)
+        elif rgl_cls == 'No':
+            return NoRegulariser()
+
+    #_________________________
+
     def resampler(self, t_filter):
         # build resampler
         seed          = self.m_config.getInt(t_filter, 'resampling', 'seed', default = None)
         resampler_rng = RandomState(seed)
         resampler_mth = self.m_config.get(t_filter, 'resampling', 'method')
         (resampler_trg, resampler_arg) = self.trigger(t_filter, 'resampling', 'trigger')
-        return Resampler(resampler_rng, resampler_mth, resampler_trg, resampler_arg)
+        resampler_rgl = self.regulariser(t_filter, resampler_rng)
+        return Resampler(resampler_rng, resampler_mth, resampler_trg, resampler_arg, resampler_rgl)
 
     #_________________________
 

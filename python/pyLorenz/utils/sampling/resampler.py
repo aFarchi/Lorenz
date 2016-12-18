@@ -20,21 +20,16 @@ class Resampler(object):
 
     #_________________________
 
-    def __init__(self, t_rng, t_method, t_trigger, t_trigger_arg):
-        self.set_resampler_parameters(t_rng, t_method, t_trigger, t_trigger_arg)
-
-    #_________________________
-
-    def set_resampler_parameters(self, t_rng, t_method, t_trigger, t_trigger_arg):
+    def __init__(self, t_rng, t_method, t_trigger, t_trigger_arg, t_regulariser):
         # random number generator
-        self.m_rng        = t_rng
+        self.m_rng         = t_rng
         # resampling method
         if t_method == 'Probabilistic':
-            self.m_method = probabilistic_sampling
+            self.m_method  = probabilistic_sampling
         elif t_method == 'StochasticUniversal':
-            self.m_method = stochastic_universal_sampling
+            self.m_method  = stochastic_universal_sampling
         elif t_method == 'MonteCarloMetropolisHastings':
-            self.m_method = monte_carlo_metropolis_hastings_sampling
+            self.m_method  = monte_carlo_metropolis_hastings_sampling
         # trigger args
         if t_trigger_arg == None:
             def trigger(*t_args):
@@ -46,7 +41,9 @@ class Resampler(object):
             def trigger(t_Neff, t_max_w):
                 return not t_trigger(t_max_w)
         # trigger
-        self.m_trigger = trigger
+        self.m_trigger     = trigger
+        # regulariser
+        self.m_regulariser = t_regulariser
 
     #_________________________
     
@@ -62,8 +59,10 @@ class Resampler(object):
         if self.m_resampled:
             # resampling indices
             indices = self.resampling_indices(t_weights.m_w)
+            # resampling and regularisation
+            self.m_regulariser.regularisation(t_x, indices, t_weights.m_w)
+            # re-initialise weights
             t_weights.initialise()
-            t_x[:]  = t_x[indices]
 
     #_________________________
 
