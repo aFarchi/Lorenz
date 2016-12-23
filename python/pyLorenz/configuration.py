@@ -367,7 +367,7 @@ class Configuration(object):
             rgl_var = np.sqrt(self.m_config.getFloat(t_filter, 'resampling', 'regularisation', 'variance'))
             return JitterRegulariser(t_rng, rgl_var)
         elif rgl_cls == 'UnivariateGaussian':
-            rgl_min = self.m_config.getFloat(t_filter, 'resampling', 'regularisation', 'variance_min')
+            rgl_min = self.m_config.getFloat(t_filter, 'resampling', 'regularisation', 'variance')
             rgl_bw  = self.m_config.getFloat(t_filter, 'resampling', 'regularisation', 'bandwidth_scale')
             return UnivariateGaussianKernelRegulariser(t_rng, rgl_min, rgl_bw)
         elif rgl_cls == 'No':
@@ -483,17 +483,10 @@ class Configuration(object):
                     relax, taper, radius)
 
         elif t_class == 'PennysLPF':
-            taper      = self.m_config.get(t_filter, 'localisation', 'taper_function')
-            radius     = self.m_config.getFloat(t_filter, 'localisation', 'radius')
-            sstrength  = self.m_config.getFloat(t_filter, 'localisation', 'smoothing_strength')
-            ainflation = self.m_config.getFloat(t_filter, 'resampling', 'adaptative_inflation', default = None)
-            try:
-                filter_rng = t_integrator.m_integrationStep.m_errorGenerator.m_rng
-            except AttributeError:
-                seed       = self.m_config.getInt(t_filter, 'integration', 'seed', default = None)
-                filter_rng = RandomState(seed)
-            return PennysLPF(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_filter, t_Ns, t_outputFields, resampler, taper, radius,
-                    sstrength, ainflation, filter_rng)
+            taper     = self.m_config.get(t_filter, 'localisation', 'taper_function')
+            radius    = self.m_config.getFloat(t_filter, 'localisation', 'radius')
+            sstrength = self.m_config.getFloat(t_filter, 'localisation', 'smoothing_strength')
+            return PennysLPF(t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_filter, t_Ns, t_outputFields, resampler, taper, radius, sstrength)
 
         elif t_class == 'CustomLPF':
             try:

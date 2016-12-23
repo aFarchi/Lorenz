@@ -107,10 +107,12 @@ class CustomLPF(AbstractEnsembleFilter):
             # normalise log-weights
             log_w_max  = log_w.max()
             log_w     -= log_w_max + np.log(np.exp(log_w-log_w_max).sum())
+            w          = np.exp(log_w)
 
             # resample
-            res_ind[:, dimension] = self.m_resampler.resampling_indices(np.exp(log_w))
-            xa[:, dimension]      = xf[res_ind[:, dimension], dimension]
+            res_ind[:, dimension] = self.m_resampler.resampling_indices(w)
+            regularisation        = self.m_resampler.regularisation(xf[:, dimension], w)
+            xa[:, dimension]      = xf[res_ind[:, dimension], dimension] + regularisation
 
         if self.m_smoothing_strength > 0:
             # smoothing by weigths

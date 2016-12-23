@@ -53,14 +53,22 @@ class Resampler(object):
 
     #_________________________
 
+    def regularisation(self, t_x, t_weights):
+        # return regularisation errors
+        return self.m_regulariser.regularisation(t_x, t_weights)
+
+    #_________________________
+
     def resample(self, t_weights, t_x):
         # check if resampling is needed
         self.m_resampled = self.m_trigger(t_weights.m_Neff, t_weights.m_max_w)
         if self.m_resampled:
             # resampling indices
             indices = self.resampling_indices(t_weights.m_w)
-            # resampling and regularisation
-            self.m_regulariser.regularisation(t_x, indices, t_weights.m_w)
+            # regularisation
+            errors  = self.regularisation(t_x, t_weights.m_w)
+            # resample
+            t_x     = t_x[indices] + errors
             # re-initialise weights
             t_weights.initialise()
 

@@ -119,6 +119,9 @@ class PoterjoysLPF(AbstractEnsembleFilter):
 
             xf[:, :] = mean + r1 * ( xf[sir_resampling_indices] - mean ) + r2 * ( xf - mean )
 
+        # regularisation
+        xf += self.m_resampler.regularisation(xf, np.ones(xf.shape[0]))
+
     #_________________________
 
     def estimate(self):

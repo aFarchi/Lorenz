@@ -24,22 +24,18 @@ class PennysLPF(AbstractEnsembleFilter):
     #_________________________
 
     def __init__(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_label, t_Ns, t_outputFields, t_resampler,
-            t_taper_function, t_localisation_radius, t_smoothing_strength, t_adaptative_inflation, t_rng):
+            t_taper_function, t_localisation_radius, t_smoothing_strength):
         AbstractEnsembleFilter.__init__(self, t_initialiser, t_integrator, t_observationOperator, t_observationTimes, t_output, t_label, t_Ns, t_outputFields)
-        self.set_PennysLPF_parameters(t_resampler, t_taper_function, t_localisation_radius, t_smoothing_strength, t_adaptative_inflation, t_rng)
+        self.set_PennysLPF_parameters(t_resampler, t_taper_function, t_localisation_radius, t_smoothing_strength)
         self.set_PennysLPF_tmp_arrays()
 
     #_________________________
 
-    def set_PennysLPF_parameters(self, t_resampler, t_taper_function, t_localisation_radius, t_smoothing_strength, t_adaptative_inflation, t_rng):
+    def set_PennysLPF_parameters(self, t_resampler, t_taper_function, t_localisation_radius, t_smoothing_strength):
         # resampler
         self.m_resampler  = t_resampler
         # smoothing strength
         self.m_smoothing_strength = t_smoothing_strength
-        # apply adaptative inflation
-        self.m_adaptative_inflation = t_adaptative_inflation
-        # RNG
-        self.m_rng = t_rng
 
         # tapper function
         if t_taper_function == 'Gaussian':
@@ -99,13 +95,10 @@ class PennysLPF(AbstractEnsembleFilter):
                 # smoothing
                 xas[:, dimension] = np.average ( xf[res_ind[:, :], dimension] , axis = 1 , weights = self.m_localisation_coefficients[dimension] )
 
-        xf[:] = self.m_smoothing_strength * xas[:] + ( 1 - self.m_smoothing_strength ) * xa[:]
-
-        if self.m_adaptative_inflation > 0:
-            std     = xf.std(axis = 0) # std is set to the ensemble spread [gaussian kernels with bandwidth=1]
-            std     = np.maximum(std, self.m_adaptative_inflation)
-            errors  = std * self.m_rng.standard_normal(xf.shape)
-            xf     += errors - errors.mean(axis = 0) # add error samples and remove sample mean
+        # update
+        xf[:]  = self.m_smoothing_strength * xas[:] + ( 1 - self.m_smoothing_strength ) * xa[:]
+        # regularisation
+        xf    += self.m_resampler.regularisation(xf, np.ones(xf.shape[0]))
 
     #_________________________
 

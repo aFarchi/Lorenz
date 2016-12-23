@@ -24,8 +24,8 @@ class NoRegulariser(object):
 
     #_________________________
 
-    def regularisation(self, t_x, t_resampling_indices, t_weights):
-        t_x[:] = t_x[t_resampling_indices]
+    def regularisation(self, t_x, t_weights):
+        return 0
 
 #__________________________________________________
 
@@ -41,11 +41,11 @@ class JitterRegulariser(object):
 
     #_________________________
 
-    def regularisation(self, t_x, t_resampling_indices, t_weights):
+    def regularisation(self, t_x, t_weights):
         # sample errors
         errors = self.m_jitter_std * self.m_rng.standard_normal(t_x.shape)
-        # return error and remove sample mean
-        t_x[:] = t_x[t_resampling_indices] + errors - errors.mean(axis=0)
+        # return errors and remove sample mean
+        return errors - errors.mean(axis=0)
 
 #__________________________________________________
 
@@ -61,7 +61,7 @@ class UnivariateGaussianKernelRegulariser(object):
 
     #_________________________
 
-    def regularisation(self, t_x, t_resampling_indices, t_weights):
+    def regularisation(self, t_x, t_weights):
         # compute univariate std
         mean   = np.average(t_x, axis=0, weights=t_weights)
         var    = np.maximum(np.average((t_x-mean)**2, axis=0, weights=t_weights), self.m_variance_min)
@@ -69,8 +69,8 @@ class UnivariateGaussianKernelRegulariser(object):
         h      = ( self.m_h / np.power( t_x.shape[0] , 0.2 ) ) * np.sqrt(var)
         # sample errors
         errors = h * self.m_rng.standard_normal(t_x.shape)
-        # add error and remove sample mean
-        t_x    = t_x[t_resampling_indices] + errors - errors.mean(axis = 0)
+        # return errors and remove sample mean
+        return errors - errors.mean(axis=0)
 
 #__________________________________________________
 
